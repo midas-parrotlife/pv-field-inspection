@@ -10,22 +10,22 @@
 <title>PV Field Inspection</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>
-/* Layout: one-column phone-first app; sticky top bar, scrolling list, sticky action bar on the form. */
+/* Layout: one-column phone-first app; sticky top bar, scrolling list, sticky action bar on forms. */
 :root{
   --bg:#f6f6f2; --card:#ffffff; --fg:#161d1b; --muted:#5d6966; --line:#d3d9d5; --soft:#e9ece8;
-  --accent:#f2b705; --accent-ink:#161d1b;
-  --ok:#1b7f47; --ok-soft:#dff3e6; --nok:#c2362b; --nok-soft:#fbe3e0;
+  --accent:#f2b705; --accent-soft:#fff1c2; --accent-ink:#161d1b;
+  --ok:#1b7f47; --ok-soft:#dff3e6; --nok:#c2362b; --nok-soft:#fbe3e0; --na:#5d6966; --na-soft:#e4e8e6;
   --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
   --body:"Barlow",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#0f1413; --card:#1a2120; --fg:#eef1ee; --muted:#9aa7a2; --line:#2b3532; --soft:#232c29;
-  --accent:#ffc62e; --accent-ink:#161d1b;
-  --ok:#49c47e; --ok-soft:#163626; --nok:#ff7a6c; --nok-soft:#3f1f1b; color-scheme:dark } }
+  --accent:#ffc62e; --accent-soft:#3a2f0a; --accent-ink:#161d1b;
+  --ok:#49c47e; --ok-soft:#163626; --nok:#ff7a6c; --nok-soft:#3f1f1b; --na:#9aa7a2; --na-soft:#2a3330; color-scheme:dark } }
 :root[data-theme="dark"]{
   --bg:#0f1413; --card:#1a2120; --fg:#eef1ee; --muted:#9aa7a2; --line:#2b3532; --soft:#232c29;
-  --accent:#ffc62e; --accent-ink:#161d1b;
-  --ok:#49c47e; --ok-soft:#163626; --nok:#ff7a6c; --nok-soft:#3f1f1b; color-scheme:dark }
+  --accent:#ffc62e; --accent-soft:#3a2f0a; --accent-ink:#161d1b;
+  --ok:#49c47e; --ok-soft:#163626; --nok:#ff7a6c; --nok-soft:#3f1f1b; --na:#9aa7a2; --na-soft:#2a3330; color-scheme:dark }
 
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -68,32 +68,44 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 .subj .t{flex:1;min-width:0}
 .subj .name{display:block;font-family:var(--display);font-weight:600;font-size:19px;line-height:1.1}
 .subj .meta{display:block;font-size:12px;color:var(--muted);margin-top:2px}
-.subj .badges{display:flex;gap:4px;flex:0 0 auto}
-.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
-.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.nok{background:var(--nok-soft);color:var(--nok)}
+.subj .badges{display:flex;gap:4px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.nok{background:var(--nok-soft);color:var(--nok)} .pill.na{background:var(--na-soft);color:var(--na)}
+
+/* Check list (multi-select) */
+.checks{display:grid;gap:6px}
+.chk{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:8px;padding:12px 12px;min-height:50px}
+.chk .box{flex:0 0 auto;width:24px;height:24px;border-radius:6px;border:2px solid var(--muted);display:grid;place-items:center;color:var(--accent-ink)}
+.chk .box svg{width:16px;height:16px;display:none}
+.chk[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.chk[aria-pressed="true"] .box{background:var(--accent);border-color:var(--accent)}
+.chk[aria-pressed="true"] .box svg{display:block}
+.chk .lbl{flex:1;min-width:0;font-size:16px;line-height:1.25}
 
 /* Form */
 .formhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .formhead button{background:none;border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:14px}
 .formhead h2{font-family:var(--display);font-weight:700;font-size:24px;margin:0;line-height:1.05;flex:1;min-width:0}
-.photo{position:relative;background:var(--soft);border-radius:8px;overflow:hidden;aspect-ratio:4/3;max-width:100%;display:grid;place-items:center;border:1px dashed var(--line)}
-.photo img{width:100%;height:100%;object-fit:cover;display:block}
-.photo .empty{text-align:center;color:var(--muted);font-size:14px;padding:16px}
-.photo .act{position:absolute;right:8px;bottom:8px;background:rgba(22,29,27,.78);color:#fff;border:0;border-radius:6px;padding:6px 10px;font-size:13px}
 .field{margin-top:14px}
 .field>label,.field>.lbl{display:block;font-family:var(--display);font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 .field select,.field textarea,.field input{width:100%;border:1px solid var(--line);border-radius:6px;padding:11px 12px;background:var(--card);min-height:46px}
 .field textarea{min-height:88px;resize:vertical}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.ph{position:relative;aspect-ratio:1;max-width:100%;border-radius:8px;overflow:hidden;background:var(--soft);border:1px solid var(--line)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph .x{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;border:0;background:rgba(22,29,27,.75);color:#fff;font-size:16px;line-height:1;display:grid;place-items:center;padding:0}
+.ph.add{border:2px dashed var(--line);background:var(--card);display:grid;place-items:center;text-align:center;font-family:var(--display);font-weight:600;font-size:16px;color:var(--muted);padding:6px}
 .loc{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
 .loc .v{flex:1;min-width:0;font-variant-numeric:tabular-nums;font-size:15px}
 .loc .s{font-size:12px;color:var(--muted)}
 .loc button{background:none;border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:13px}
 .locedit{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .locedit input{width:100%;border:1px solid var(--line);border-radius:6px;padding:10px;background:var(--card)}
-.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.seg button{border:2px solid var(--line);border-radius:8px;padding:14px;background:var(--card);font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.seg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.seg button{border:2px solid var(--line);border-radius:8px;padding:14px 6px;background:var(--card);font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 .seg button.ok[aria-pressed="true"]{border-color:var(--ok);background:var(--ok-soft);color:var(--ok)}
 .seg button.nok[aria-pressed="true"]{border-color:var(--nok);background:var(--nok-soft);color:var(--nok)}
+.seg button.na[aria-pressed="true"]{border-color:var(--na);background:var(--na-soft);color:var(--fg)}
 .actions{position:sticky;bottom:0;background:var(--bg);padding:12px 0 calc(8px + env(safe-area-inset-bottom,0px));margin-top:16px;display:flex;gap:8px}
 .btn{border:0;border-radius:8px;padding:14px 16px;font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
 .btn.primary{flex:1;background:var(--accent);color:var(--accent-ink)}
@@ -107,31 +119,38 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 .logbar .spacer{flex:1}
 .summary{font-size:14px;color:var(--muted)}
 .rec{display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;border-left:5px solid var(--line)}
-.rec.ok{border-left-color:var(--ok)} .rec.nok{border-left-color:var(--nok)}
-.rec img,.rec .noimg{width:72px;height:72px;border-radius:6px;object-fit:cover;flex:0 0 auto;background:var(--soft)}
+.rec.ok{border-left-color:var(--ok)} .rec.nok{border-left-color:var(--nok)} .rec.na{border-left-color:var(--na)}
+.rec .im{position:relative;width:72px;height:72px;flex:0 0 auto}
+.rec img,.rec .noimg{width:72px;height:72px;border-radius:6px;object-fit:cover;background:var(--soft);display:block}
 .rec .noimg{display:grid;place-items:center;color:var(--muted);font-size:11px}
+.rec .cnt{position:absolute;right:3px;bottom:3px;background:rgba(22,29,27,.78);color:#fff;font-size:11px;padding:1px 6px;border-radius:999px}
 .rec .b{flex:1;min-width:0}
 .rec .l1{display:flex;gap:8px;align-items:baseline;justify-content:space-between}
 .rec .subject{font-family:var(--display);font-weight:600;font-size:17px;line-height:1.1}
 .rec .check{font-size:14px;margin-top:2px}
 .rec .note{font-size:14px;color:var(--muted);margin-top:4px;white-space:pre-wrap;word-break:break-word}
 .rec .m{font-size:12px;color:var(--muted);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
-.rec .del{background:none;border:0;color:var(--muted);font-size:13px;padding:4px 0;text-decoration:underline}
+.rec .acts{display:flex;gap:14px;margin-top:4px}
+.rec .acts button{background:none;border:0;color:var(--muted);font-size:13px;padding:4px 0;text-decoration:underline}
 .rec .del.confirm{color:var(--nok);font-weight:600}
 .empty-state{text-align:center;color:var(--muted);padding:40px 16px}
 
+/* Camera */
 #camView{position:fixed;inset:0;z-index:30;background:#000;color:#fff;display:flex;flex-direction:column}
 #camVideo{flex:1;min-height:0;width:100%;object-fit:cover;background:#000}
-.camtop{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;background:linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,0))}
-.camtop span{font-family:var(--display);font-weight:600;font-size:20px}
-.camtop button,#camNative,#camTorch{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:8px 12px;font-size:14px}
+.camtop{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;background:linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,0))}
+.camtop .t{min-width:0;flex:1}
+.camtop .t b{display:block;font-family:var(--display);font-weight:600;font-size:20px;line-height:1.1}
+.camtop .t span{display:block;font-size:13px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.camtop button,#camNative,#camTorch,#camSkip{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:8px 12px;font-size:14px;white-space:nowrap}
 .cammsg{position:absolute;left:16px;right:16px;top:40%;text-align:center;background:rgba(0,0,0,.7);padding:14px;border-radius:8px;font-size:15px}
 .cambar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:14px 20px calc(18px + env(safe-area-inset-bottom,0px));background:#000}
-.cambar>:last-child{justify-self:end}
+.cambar .r{justify-self:end;display:flex;gap:8px}
 #camShot{width:76px;height:76px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,.4);padding:0;display:grid;place-items:center;justify-self:center}
 #camShot span{width:60px;height:60px;border-radius:50%;background:#fff;border:3px solid #000;display:block}
 #camShot:disabled{opacity:.5}
-#toast{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:12px 14px;border-radius:8px;font-size:14px;z-index:20;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;text-align:center}
+
+#toast{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:12px 14px;border-radius:8px;font-size:14px;z-index:40;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;text-align:center}
 #toast.show{opacity:1;transform:none}
 </style>
 
@@ -154,43 +173,66 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 
 <main>
   <section id="viewSubjects">
-    <p class="hint">Tap a subject to take a photo, then record the check.</p>
+    <p class="hint">Tap a subject, pick the items you are checking, then take photos.</p>
     <div class="resume" id="resume" hidden><div class="t"><span>Unsaved record</span><b id="resumeSubject"></b></div><button type="button" id="resumeGo">Continue</button><button type="button" id="resumeDrop">Discard</button></div>
     <div class="nojs" id="nojs">This is a preview that cannot run the app. Save the file and open it in Chrome (Android) or put it on a website and open it in Safari (iPhone).</div>
     <div class="subjects" id="subjects">
-      <button type="button" class="subj" data-subject="Gate"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Gate</span><span class="meta">3 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="SHE"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">SHE</span><span class="meta">5 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Fence"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Fence</span><span class="meta">2 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="CCTV"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">CCTV</span><span class="meta">3 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Vegetation - Shrubbery"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Vegetation - Shrubbery</span><span class="meta">3 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Field"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Field</span><span class="meta">9 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Maintenance roads"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Maintenance roads</span><span class="meta">2 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Ditches / canals"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Ditches / canals</span><span class="meta">2 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Substructure"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Substructure</span><span class="meta">5 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="DC cabling"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">DC cabling</span><span class="meta">6 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Inverter"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Inverter</span><span class="meta">10 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Panels"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Panels</span><span class="meta">8 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Tracker"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Tracker</span><span class="meta">7 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Rows"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Rows</span><span class="meta">5 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Pyranometer"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Pyranometer</span><span class="meta">2 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Transformer"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Transformer</span><span class="meta">6 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Substation"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Substation</span><span class="meta">6 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Spare parts warehouse / container"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Spare parts warehouse / container</span><span class="meta">3 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Waste management area"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Waste management area</span><span class="meta">1 check</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="SCADA cabinet"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">SCADA cabinet</span><span class="meta">3 checks</span></span><span class="badges"></span></button>
-      <button type="button" class="subj" data-subject="Control room"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Control room</span><span class="meta">3 checks</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Gate"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Gate</span><span class="meta">3 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="SHE"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">SHE</span><span class="meta">5 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Fence"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Fence</span><span class="meta">2 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="CCTV"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">CCTV</span><span class="meta">3 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Vegetation - Shrubbery"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Vegetation - Shrubbery</span><span class="meta">3 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Field"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Field</span><span class="meta">9 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Maintenance roads"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Maintenance roads</span><span class="meta">2 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Ditches / canals"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Ditches / canals</span><span class="meta">2 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Substructure"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Substructure</span><span class="meta">5 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="DC cabling"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">DC cabling</span><span class="meta">6 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Inverter"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Inverter</span><span class="meta">10 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Panels"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Panels</span><span class="meta">8 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Tracker"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Tracker</span><span class="meta">7 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Rows"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Rows</span><span class="meta">5 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Pyranometer"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Pyranometer</span><span class="meta">2 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Transformer"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Transformer</span><span class="meta">6 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Substation"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Substation</span><span class="meta">6 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Spare parts warehouse / container"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Spare parts warehouse / container</span><span class="meta">3 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Waste management area"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Waste management area</span><span class="meta">1 item</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="SCADA cabinet"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">SCADA cabinet</span><span class="meta">3 items</span></span><span class="badges"></span></button>
+      <button type="button" class="subj" data-subject="Control room"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Control room</span><span class="meta">3 items</span></span><span class="badges"></span></button>
+    </div>
+  </section>
+
+  <section id="viewPick" hidden>
+    <div class="formhead">
+      <button id="pickBack" type="button">← Back</button>
+      <h2 id="pickSubject">Subject</h2>
+    </div>
+    <p class="hint">Select one or more items. You can still change them on the next screen.</p>
+    <div class="checks" id="pickChecks"></div>
+    <div class="actions">
+      <button class="btn ghost" id="pickNoPhoto" type="button">No photo</button>
+      <button class="btn primary" id="pickPhoto" type="button">Take photo</button>
     </div>
   </section>
 
   <section id="viewForm" hidden>
     <div class="formhead">
       <button id="back" type="button">← Back</button>
-      <h2 id="formSubject">Subject</h2>
+      <h2 id="formTitle">Record</h2>
     </div>
-    <div class="photo" id="photoBox">
-      <div class="empty" id="photoEmpty">No photo yet.<br>Tap “Add photo” to open the camera.</div>
-      <img id="photoImg" alt="" hidden>
-      <button class="act" id="retake" type="button">Add photo</button>
+
+    <div class="field">
+      <label for="fSubject">Subject</label>
+      <select id="fSubject"></select>
+    </div>
+
+    <div class="field">
+      <span class="lbl">Items checked</span>
+      <div class="checks" id="fChecks"></div>
+    </div>
+
+    <div class="field">
+      <span class="lbl">Photos</span>
+      <div class="photos" id="fPhotos"></div>
     </div>
 
     <div class="field">
@@ -207,15 +249,11 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
     </div>
 
     <div class="field">
-      <label for="check">Check</label>
-      <select id="check"></select>
-    </div>
-
-    <div class="field">
       <span class="lbl">Result</span>
       <div class="seg">
         <button type="button" class="ok" id="resOk" aria-pressed="false">OK</button>
         <button type="button" class="nok" id="resNok" aria-pressed="false">Not OK</button>
+        <button type="button" class="na" id="resNa" aria-pressed="false">N/A</button>
       </div>
     </div>
 
@@ -246,12 +284,12 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 <input type="file" id="cam" accept="image/*" capture="environment" hidden>
 <div id="camView" hidden>
   <video id="camVideo" autoplay playsinline muted></video>
-  <div class="camtop"><span id="camSubject"></span><button type="button" id="camClose">Close</button></div>
+  <div class="camtop"><div class="t"><b id="camSubject"></b><span id="camItems"></span></div><button type="button" id="camSkip">No photo</button><button type="button" id="camClose">Close</button></div>
   <div class="cammsg" id="camMsg" hidden></div>
   <div class="cambar">
     <button type="button" id="camNative">Camera app</button>
     <button type="button" id="camShot" aria-label="Take photo"><span></span></button>
-    <button type="button" id="camTorch" hidden>Light</button>
+    <div class="r"><button type="button" id="camTorch" hidden>Light</button></div>
   </div>
 </div>
 <div id="toast" role="status"></div>
@@ -301,24 +339,24 @@ const CHECKLIST = [
   ["Control room", ["Safety & emergency signage","SCADA access","CCTV access"]],
 ];
 const CHECKS = Object.fromEntries(CHECKLIST);
+const SUBJECTS = CHECKLIST.map(x => x[0]);
+const OTHER = 'Other';
+const RESULT_LABEL = { ok:'OK', nok:'NOT OK', na:'N/A' };
 
 /* ---------- DOM ---------- */
 const $ = id => document.getElementById(id);
 $('nojs').remove();
-const el = {
-  site:$('site'), sync:$('sync'), syncText:$('syncText'), tabInspect:$('tabInspect'), tabLog:$('tabLog'), logCount:$('logCount'),
-  viewSubjects:$('viewSubjects'), viewForm:$('viewForm'), viewLog:$('viewLog'), subjects:$('subjects'),
-  back:$('back'), formSubject:$('formSubject'), photoBox:$('photoBox'), photoEmpty:$('photoEmpty'), photoImg:$('photoImg'), retake:$('retake'),
-  locText:$('locText'), locSrc:$('locSrc'), locEdit:$('locEdit'), locRetry:$('locRetry'), locEditor:$('locEditor'), latIn:$('latIn'), lonIn:$('lonIn'),
-  check:$('check'), resOk:$('resOk'), resNok:$('resNok'), note:$('note'), formErr:$('formErr'), cancel:$('cancel'), save:$('save'),
-  resume:$('resume'), resumeSubject:$('resumeSubject'), resumeGo:$('resumeGo'), resumeDrop:$('resumeDrop'),
-  camMode:$('camMode'), savePhotos:$('savePhotos'), logSummary:$('logSummary'), exportCsv:$('exportCsv'), exportZip:$('exportZip'), records:$('records'), cam:$('cam'), toast:$('toast'), camView:$('camView'), camVideo:$('camVideo'), camSubject:$('camSubject'), camClose:$('camClose'), camMsg:$('camMsg'), camNative:$('camNative'), camShot:$('camShot'), camTorch:$('camTorch'),
-};
+const ids = ['site','sync','syncText','camMode','tabInspect','tabLog','logCount','viewSubjects','viewPick','viewForm','viewLog','subjects',
+  'resume','resumeSubject','resumeGo','resumeDrop','pickBack','pickSubject','pickChecks','pickNoPhoto','pickPhoto',
+  'back','formTitle','fSubject','fChecks','fPhotos','locText','locSrc','locRetry','locEdit','locEditor','latIn','lonIn',
+  'resOk','resNok','resNa','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
+  'cam','camView','camVideo','camSubject','camItems','camSkip','camClose','camMsg','camNative','camShot','camTorch','toast'];
+const el = {}; for(const id of ids) el[id] = $(id);
 
 /* ---------- State ---------- */
-let records = new Map();       // id -> record
-let draft = null;              // record being edited
-let lastLoc = null;            // last known position (suggestion)
+let records = new Map();
+let draft = null;
+let lastLoc = null;
 const caps = { db:null, assets:null, downloads:null };
 let syncing = false;
 let toastTimer;
@@ -327,7 +365,8 @@ function toast(msg, ms=2600){ el.toast.textContent = msg; el.toast.classList.add
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const fmtCoord = (lat,lon) => `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
 const fmtTs = iso => { const d = new Date(iso); return d.toLocaleDateString(undefined,{day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}); };
-const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+const slug = s => (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 
 /* ---------- IndexedDB (local, offline-first) ---------- */
 let idb = null;
@@ -352,6 +391,17 @@ const dbAll = () => tx('records','readonly', s => s.getAll());
 const kvSet = (k,v) => tx('kv','readwrite', s => s.put(v,k));
 const kvGet = k => tx('kv','readonly', s => s.get(k));
 const kvDel = k => tx('kv','readwrite', s => s.delete(k));
+
+/* Older records had one check and one photo; bring them into the current shape. */
+function migrate(r){
+  if(!Array.isArray(r.checks)) r.checks = r.check ? [r.check] : [];
+  if(!Array.isArray(r.photos)){
+    r.photos = (r.blob || r.thumb || r.photo) ? [{ id:'p0', blob:r.blob||null, thumb:r.thumb||null, asset:r.photo||null, saved:!!r.savedToDevice }] : [];
+  }
+  delete r.check; delete r.blob; delete r.thumb; delete r.photo; delete r.savedToDevice;
+  if(!r.result) r.result = '';
+  return r;
+}
 
 /* ---------- Photo processing ---------- */
 function loadImage(url){ return new Promise((res,rej)=>{ const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; }); }
@@ -430,54 +480,92 @@ function geolocate(){
 /* ---------- Views ---------- */
 function showView(name){
   el.viewSubjects.hidden = name !== 'subjects';
+  el.viewPick.hidden = name !== 'pick';
   el.viewForm.hidden = name !== 'form';
   el.viewLog.hidden = name !== 'log';
   el.tabInspect.setAttribute('aria-selected', name !== 'log');
   el.tabLog.setAttribute('aria-selected', name === 'log');
   window.scrollTo(0,0);
 }
-
-function draftIsEmpty(d){ return !d || (!d.thumb && !d.check && !d.result && !(d.note||'').trim()); }
+function draftIsEmpty(d){ return !d || (!(d.photos && d.photos.length) && !(d.checks && d.checks.length) && !d.result && !(d.note||'').trim()); }
 function renderResume(){
   el.resume.hidden = draftIsEmpty(draft);
-  if(!el.resume.hidden) el.resumeSubject.textContent = draft.subject;
+  if(!el.resume.hidden) el.resumeSubject.textContent = draft.subject + (draft.checks.length ? ' · ' + draft.checks.length + ' item' + (draft.checks.length>1?'s':'') : '');
 }
 function renderSubjects(){
   renderResume();
   const counts = {};
-  for(const r of records.values()){ const c = counts[r.subject] || (counts[r.subject] = {ok:0,nok:0}); c[r.result]++; }
+  for(const r of records.values()){ const c = counts[r.subject] || (counts[r.subject] = {ok:0,nok:0,na:0}); if(c[r.result] != null) c[r.result]++; }
   el.subjects.innerHTML = '';
   for(const [subject, checks] of CHECKLIST){
     const b = document.createElement('button'); b.type = 'button'; b.className = 'subj'; b.dataset.subject = subject;
     const c = counts[subject];
     b.innerHTML = `<span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
-      <span class="t"><span class="name"></span><span class="meta">${checks.length} check${checks.length>1?'s':''}</span></span>
-      <span class="badges">${c && c.ok ? `<span class="pill ok">${c.ok} OK</span>` : ''}${c && c.nok ? `<span class="pill nok">${c.nok} NOK</span>` : ''}</span>`;
+      <span class="t"><span class="name"></span><span class="meta">${checks.length} item${checks.length>1?'s':''}</span></span>
+      <span class="badges">${c && c.ok ? `<span class="pill ok">${c.ok} OK</span>` : ''}${c && c.nok ? `<span class="pill nok">${c.nok} NOK</span>` : ''}${c && c.na ? `<span class="pill na">${c.na} N/A</span>` : ''}</span>`;
     b.querySelector('.name').textContent = subject;
-    b.addEventListener('click', () => startInspection(subject));
+    b.addEventListener('click', () => tapSubject(subject));
     el.subjects.appendChild(b);
   }
   el.logCount.textContent = records.size;
 }
+/* Multi-select check list used by the picker and the form. */
+function renderCheckList(container, subject, selected, onChange){
+  container.innerHTML = '';
+  const items = (CHECKS[subject] || []).concat([OTHER]);
+  for(const item of items){
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chk';
+    b.setAttribute('aria-pressed', selected.includes(item));
+    b.innerHTML = `<span class="box"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"/></svg></span><span class="lbl"></span>`;
+    b.querySelector('.lbl').textContent = item === OTHER ? 'Other (describe in notes)' : item;
+    b.addEventListener('click', () => {
+      const i = selected.indexOf(item); if(i >= 0) selected.splice(i,1); else selected.push(item);
+      b.setAttribute('aria-pressed', i < 0); onChange();
+    });
+    container.appendChild(b);
+  }
+}
 
-/* ---------- Capture flow ---------- */
-let pendingSubject = null;
-let camStream = null, camTrack = null;
+/* ---------- Start: subject → items → photo ---------- */
+function newDraft(subject){
+  return { id:uid(), subject, checks:[], result:'', note:'', lat:null, lon:null, acc:null, locSource:'', photos:[], ts:null };
+}
+function tapSubject(subject){
+  if(draft && !draftIsEmpty(draft)){
+    if(draft.subject === subject){ openForm(); return; }
+    toast('Unsaved record for ' + draft.subject + ' discarded');
+  }
+  draft = newDraft(subject);
+  openPick();
+}
+function openPick(){
+  el.pickSubject.textContent = draft.subject;
+  renderCheckList(el.pickChecks, draft.subject, draft.checks, persistDraft);
+  showView('pick');
+}
+el.pickBack.addEventListener('click', () => leaveForm(false));
+el.pickPhoto.addEventListener('click', () => startCamera('pick'));
+el.pickNoPhoto.addEventListener('click', () => { openForm(); if(draft.lat == null) locate(null); });
+
+/* ---------- Camera ---------- */
+let camStream = null, camTrack = null, camReturn = 'form';
 function camPref(){ try{ return localStorage.getItem('pvfi.cam') || 'inpage'; }catch(e){ return 'inpage'; } }
 function setCamPref(v){ try{ localStorage.setItem('pvfi.cam', v); }catch(e){} }
-function startInspection(subject){
-  pendingSubject = subject;
-  if(camPref() === 'inpage' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) openCamera(subject);
+function startCamera(from){
+  camReturn = from;
+  if(camPref() === 'inpage' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) openCamera();
   else { el.cam.value = ''; el.cam.click(); }
 }
-async function openCamera(subject){
-  el.camSubject.textContent = subject; el.camMsg.hidden = true; el.camShot.disabled = false; el.camTorch.hidden = true;
+async function openCamera(){
+  el.camSubject.textContent = draft.subject;
+  el.camItems.textContent = draft.checks.length ? draft.checks.join(', ') : 'no items selected yet';
+  el.camMsg.hidden = true; el.camShot.disabled = false; el.camTorch.hidden = true;
   el.camView.hidden = false;
   try{
     camStream = await navigator.mediaDevices.getUserMedia({ audio:false, video:{ facingMode:{ ideal:'environment' }, width:{ ideal:2560 }, height:{ ideal:1920 } } });
     el.camVideo.srcObject = camStream;
     camTrack = camStream.getVideoTracks()[0];
-    try{ const caps = camTrack.getCapabilities ? camTrack.getCapabilities() : {}; if(caps.torch) el.camTorch.hidden = false; }catch(e){}
+    try{ const c = camTrack.getCapabilities ? camTrack.getCapabilities() : {}; if(c.torch) el.camTorch.hidden = false; }catch(e){}
   }catch(e){
     camStream = null; camTrack = null; el.camShot.disabled = true;
     const denied = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
@@ -501,40 +589,32 @@ async function grabFrame(){
 }
 el.camShot.addEventListener('click', async () => {
   el.camShot.disabled = true;
-  try{
-    const blob = await grabFrame();
-    closeCamera();
-    await acceptPhoto(blob, pendingSubject || (draft && draft.subject));
-  }catch(e){ el.camShot.disabled = false; toast('Could not capture; try again or use the camera app'); }
+  try{ const blob = await grabFrame(); closeCamera(); await acceptPhoto(blob); }
+  catch(e){ el.camShot.disabled = false; toast('Could not capture; try again or use the camera app'); }
 });
-el.camClose.addEventListener('click', () => { closeCamera(); if(pendingSubject && draft && draft.subject === pendingSubject) openForm(); });
+el.camSkip.addEventListener('click', () => { closeCamera(); openForm(); if(draft.lat == null) locate(null); });
+el.camClose.addEventListener('click', () => { closeCamera(); if(camReturn === 'pick') openPick(); else openForm(); });
 el.camNative.addEventListener('click', () => { closeCamera(); el.cam.value = ''; el.cam.click(); });
 el.camTorch.addEventListener('click', async () => { if(!camTrack) return; try{ const on = !(camTrack.getSettings().torch); await camTrack.applyConstraints({ advanced:[{ torch:on }] }); el.camTorch.textContent = on ? 'Light off' : 'Light'; }catch(e){} });
 document.addEventListener('visibilitychange', () => { if(document.hidden && camStream) closeCamera(); });
-async function acceptPhoto(file, subject){
-  if(!file || !subject) return;
-  if(!draft || draft.subject !== subject) newDraft(subject);
+el.cam.addEventListener('change', () => acceptPhoto(el.cam.files && el.cam.files[0]));
+el.cam.addEventListener('cancel', () => { if(draft){ openForm(); if(draft.lat == null) locate(null); } });
+
+async function acceptPhoto(file){
+  if(!file || !draft) return;
+  const first = draft.photos.length === 0;
   openForm();
-  el.photoEmpty.hidden = false; el.photoEmpty.textContent = 'Processing photo…';
+  const ph = { id:uid(), blob:null, thumb:null, asset:null, saved:false, busy:true };
+  draft.photos.push(ph); renderPhotos();
   try{
     const { blob, thumb, gps } = await processPhoto(file);
-    draft.blob = blob; draft.thumb = thumb;
-    if(gps && !draft.lat){ setLoc(gps.lat, gps.lon, null, 'photo'); }
-    renderPhoto(); persistDraft();
-    locate(gps);
-  }catch(e){ el.photoEmpty.textContent = 'Could not read that photo. Try again.'; toast('Photo failed to load'); }
+    ph.blob = blob; ph.thumb = thumb; ph.busy = false;
+    renderPhotos(); persistDraft();
+    if(first){ if(gps && draft.lat == null) setLoc(gps.lat, gps.lon, null, 'photo'); locate(gps); }
+  }catch(e){ draft.photos = draft.photos.filter(p => p !== ph); renderPhotos(); toast('Could not read that photo. Try again.'); }
 }
-el.cam.addEventListener('change', () => acceptPhoto(el.cam.files && el.cam.files[0], pendingSubject || (draft && draft.subject)));
-el.cam.addEventListener('cancel', () => {
-  if(!pendingSubject) return;
-  if(!draft || draft.subject !== pendingSubject) newDraft(pendingSubject);
-  openForm();
-  if(draft.lat == null) locate(null);
-});
 
-function newDraft(subject){
-  draft = { id:uid(), subject, check:'', result:'', note:'', lat:null, lon:null, acc:null, locSource:'', blob:null, thumb:null, ts:null };
-}
+/* ---------- Location ---------- */
 async function locate(gpsFromPhoto, force){
   if(!force && draft.lat != null && draft.locSource === 'manual') return;
   if(!gpsFromPhoto){ el.locText.textContent = 'Locating…'; el.locSrc.textContent = 'Waiting for GPS'; }
@@ -561,33 +641,6 @@ function renderLoc(){
   el.locText.textContent = fmtCoord(draft.lat, draft.lon) + (draft.acc ? ` ±${draft.acc} m` : '');
   el.locSrc.textContent = { gps:'From GPS', photo:'From photo metadata', manual:'Entered manually' }[draft.locSource] || '';
 }
-function renderPhoto(){
-  if(draft.thumb){ el.photoImg.src = draft.thumb; el.photoImg.hidden = false; el.photoEmpty.hidden = true; el.retake.textContent = 'Retake'; }
-  else { el.photoImg.hidden = true; el.photoEmpty.hidden = false; el.photoEmpty.innerHTML = 'No photo yet.<br>Tap “Add photo” to open the camera.'; el.retake.textContent = 'Add photo'; }
-}
-function openForm(){
-  el.formSubject.textContent = draft.subject;
-  el.check.innerHTML = '<option value="">Select a check…</option>' + CHECKS[draft.subject].map(c => `<option>${c.replace(/</g,'&lt;')}</option>`).join('') + '<option value="__other">Other (describe in notes)</option>';
-  el.check.value = draft.check || '';
-  el.resOk.setAttribute('aria-pressed', draft.result === 'ok');
-  el.resNok.setAttribute('aria-pressed', draft.result === 'nok');
-  el.note.value = draft.note || '';
-  el.locEditor.hidden = true; el.formErr.textContent = '';
-  renderPhoto(); renderLoc();
-  showView('form');
-}
-function persistDraft(){ if(draftIsEmpty(draft)) kvDel('draft').catch(()=>{}); else kvSet('draft', draft).catch(()=>{}); }
-
-el.retake.addEventListener('click', () => { startInspection(draft.subject); });
-el.back.addEventListener('click', () => leaveForm(false));
-el.cancel.addEventListener('click', () => leaveForm(true));
-function leaveForm(discard){
-  if(discard || draftIsEmpty(draft)){ draft = null; kvDel('draft').catch(()=>{}); }
-  else persistDraft();
-  renderResume(); showView('subjects');
-}
-el.resumeGo.addEventListener('click', () => { if(draft) openForm(); });
-el.resumeDrop.addEventListener('click', () => { draft = null; kvDel('draft').catch(()=>{}); renderResume(); toast('Discarded'); });
 el.locRetry.addEventListener('click', () => { if(draft) locate(draft.locSource === 'photo' ? { lat:draft.lat, lon:draft.lon } : null, true); });
 el.locEdit.addEventListener('click', () => {
   el.locEditor.hidden = !el.locEditor.hidden;
@@ -602,49 +655,95 @@ function manualLoc(){
   if(isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180){ setLoc(lat, lon, null, 'manual'); persistDraft(); }
 }
 el.latIn.addEventListener('change', manualLoc); el.lonIn.addEventListener('change', manualLoc);
-el.check.addEventListener('change', () => { draft.check = el.check.value; persistDraft(); });
+
+/* ---------- Form ---------- */
+function openForm(){
+  el.formTitle.textContent = draft.subject;
+  el.fSubject.innerHTML = SUBJECTS.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  el.fSubject.value = draft.subject;
+  renderCheckList(el.fChecks, draft.subject, draft.checks, persistDraft);
+  renderPhotos();
+  for(const [id, r] of [['resOk','ok'],['resNok','nok'],['resNa','na']]) el[id].setAttribute('aria-pressed', draft.result === r);
+  el.note.value = draft.note || '';
+  el.locEditor.hidden = true; el.formErr.textContent = '';
+  renderLoc(); el.locRetry.hidden = draft.lat != null || !geoReason;
+  showView('form');
+}
+function renderPhotos(){
+  el.fPhotos.innerHTML = '';
+  for(const p of draft.photos){
+    const d = document.createElement('div'); d.className = 'ph';
+    const src = p.thumb || (p.asset ? '/_blob/' + p.asset : null);
+    d.innerHTML = (src ? `<img alt="">` : `<div class="ph add" style="border:0">${p.busy ? 'Processing…' : 'No preview'}</div>`) + `<button type="button" class="x" aria-label="Remove photo">×</button>`;
+    if(src) d.querySelector('img').src = src;
+    d.querySelector('.x').addEventListener('click', () => { draft.photos = draft.photos.filter(x => x !== p); renderPhotos(); persistDraft(); });
+    el.fPhotos.appendChild(d);
+  }
+  const add = document.createElement('button'); add.type = 'button'; add.className = 'ph add'; add.textContent = draft.photos.length ? '+ Add photo' : '+ Take photo';
+  add.addEventListener('click', () => startCamera('form'));
+  el.fPhotos.appendChild(add);
+}
+function persistDraft(){ if(draftIsEmpty(draft)) kvDel('draft').catch(()=>{}); else kvSet('draft', draft).catch(()=>{}); }
+el.fSubject.addEventListener('change', () => {
+  draft.subject = el.fSubject.value; draft.checks = [];
+  el.formTitle.textContent = draft.subject;
+  renderCheckList(el.fChecks, draft.subject, draft.checks, persistDraft); persistDraft();
+});
 el.note.addEventListener('input', () => { draft.note = el.note.value; });
 el.note.addEventListener('change', persistDraft);
+function setResult(r){ draft.result = r; for(const [id, v] of [['resOk','ok'],['resNok','nok'],['resNa','na']]) el[id].setAttribute('aria-pressed', v === r); persistDraft(); }
 el.resOk.addEventListener('click', () => setResult('ok'));
 el.resNok.addEventListener('click', () => setResult('nok'));
-function setResult(r){ draft.result = r; el.resOk.setAttribute('aria-pressed', r==='ok'); el.resNok.setAttribute('aria-pressed', r==='nok'); persistDraft(); }
+el.resNa.addEventListener('click', () => setResult('na'));
+el.back.addEventListener('click', () => leaveForm(false));
+el.cancel.addEventListener('click', () => leaveForm(true));
+function leaveForm(discard){
+  if(discard || draftIsEmpty(draft)){ draft = null; kvDel('draft').catch(()=>{}); }
+  else persistDraft();
+  renderResume(); showView('subjects');
+}
+el.resumeGo.addEventListener('click', () => { if(draft) openForm(); });
+el.resumeDrop.addEventListener('click', () => { draft = null; kvDel('draft').catch(()=>{}); renderResume(); toast('Discarded'); });
 
 el.save.addEventListener('click', async () => {
   const missing = [];
-  if(!draft.check) missing.push('a check');
-  if(!draft.result) missing.push('OK or Not OK');
+  if(!draft.checks.length) missing.push('at least one item');
+  if(!draft.result) missing.push('OK, Not OK or N/A');
   if(missing.length){ el.formErr.textContent = 'Select ' + missing.join(' and ') + ' before saving.'; return; }
-  const r = { ...draft, note: el.note.value.trim(), check: draft.check === '__other' ? 'Other' : draft.check, site: el.site.value.trim(), ts: new Date().toISOString(), synced:false, photo:null };
+  if(draft.photos.some(p => p.busy)){ el.formErr.textContent = 'A photo is still being processed; wait a moment.'; return; }
+  const r = { ...draft, note: el.note.value.trim(), site: el.site.value.trim(), ts: draft.ts || new Date().toISOString(), synced:false };
   records.set(r.id, r);
   try{ await dbPut(r); }catch(e){ toast('Saved in memory only; local storage is unavailable'); }
   draft = null; kvDel('draft').catch(()=>{});
   renderSubjects(); showView('subjects');
-  toast(`Saved: ${r.subject} · ${r.check} · ${r.result === 'ok' ? 'OK' : 'NOT OK'}`);
+  toast(`Saved: ${r.subject} · ${r.checks.length} item${r.checks.length>1?'s':''} · ${RESULT_LABEL[r.result]}`);
   syncPending();
 });
 
 /* ---------- Log ---------- */
+function sortedRecords(){ return [...records.values()].sort((a,b) => (a.ts||'').localeCompare(b.ts||'')); }
 function renderLog(){
-  const list = [...records.values()].sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+  const list = sortedRecords().reverse();
   const nok = list.filter(r => r.result === 'nok').length;
   el.logSummary.textContent = list.length ? `${list.length} record${list.length>1?'s':''} · ${nok} not OK` : '';
   el.records.innerHTML = '';
   if(!list.length){ el.records.innerHTML = '<div class="empty-state">No records yet. Go to Inspect and tap a subject.</div>'; return; }
   for(const r of list){
     const d = document.createElement('div'); d.className = 'rec ' + r.result;
-    const src = r.thumb || (r.photo ? '/_blob/' + r.photo : null);
-    d.innerHTML = `${src ? `<img alt="">` : `<div class="noimg">no photo</div>`}
+    const p0 = r.photos[0]; const src = p0 ? (p0.thumb || (p0.asset ? '/_blob/' + p0.asset : null)) : null;
+    d.innerHTML = `<div class="im">${src ? `<img alt="">` : `<div class="noimg">no photo</div>`}${r.photos.length > 1 ? `<span class="cnt">${r.photos.length}</span>` : ''}</div>
       <div class="b">
-        <div class="l1"><span class="subject"></span><span class="pill ${r.result}">${r.result === 'ok' ? 'OK' : 'NOT OK'}</span></div>
+        <div class="l1"><span class="subject"></span><span class="pill ${r.result}">${RESULT_LABEL[r.result] || ''}</span></div>
         <div class="check"></div>
         <div class="note" ${r.note ? '' : 'hidden'}></div>
         <div class="m"><span>${fmtTs(r.ts)}</span><span>${r.lat != null ? fmtCoord(r.lat, r.lon) : 'no location'}</span></div>
-        <button class="del" type="button">Delete</button>
+        <div class="acts"><button class="edit" type="button">Edit</button><button class="del" type="button">Delete</button></div>
       </div>`;
     if(src) d.querySelector('img').src = src;
     d.querySelector('.subject').textContent = r.subject + (r.site ? ' · ' + r.site : '');
-    d.querySelector('.check').textContent = r.check;
+    d.querySelector('.check').textContent = r.checks.join(', ');
     if(r.note) d.querySelector('.note').textContent = r.note;
+    d.querySelector('.edit').addEventListener('click', () => editRecord(r));
     const del = d.querySelector('.del');
     del.addEventListener('click', async () => {
       if(!del.classList.contains('confirm')){ del.classList.add('confirm'); del.textContent = 'Tap again to delete'; setTimeout(() => { del.classList.remove('confirm'); del.textContent = 'Delete'; }, 3000); return; }
@@ -653,11 +752,17 @@ function renderLog(){
     el.records.appendChild(d);
   }
 }
+/* Editing reopens the record as the draft; saving writes it back under the same id. */
+function editRecord(r){
+  if(draft && !draftIsEmpty(draft)) toast('Unsaved record for ' + draft.subject + ' discarded');
+  draft = { ...r, checks:[...r.checks], photos: r.photos.map(p => ({ ...p })), synced:false };
+  openForm();
+}
 async function deleteRecord(r){
   records.delete(r.id);
   try{ await dbDel(r.id); }catch(e){}
   try{ if(caps.db) await caps.db.doc('inspections/' + r.id).delete(); }catch(e){}
-  try{ if(caps.assets && r.photo) await caps.assets.delete(r.photo); }catch(e){}
+  for(const p of r.photos){ try{ if(caps.assets && p.asset) await caps.assets.delete(p.asset); }catch(e){} }
   toast('Deleted');
 }
 
@@ -669,14 +774,17 @@ function setSyncUI(){
   if(pending){ el.sync.className = 'sync pending'; el.syncText.textContent = `${pending} to sync`; return; }
   el.sync.className = 'sync on'; el.syncText.textContent = 'synced';
 }
-function toDoc(r){ return { id:r.id, ts:r.ts, site:r.site||'', subject:r.subject, check:r.check, result:r.result, note:r.note||'', lat:r.lat, lon:r.lon, acc:r.acc, locSource:r.locSource||'', photo:r.photo||null, thumb:r.thumb && r.thumb.startsWith('data:') ? r.thumb : null }; }
+function toDoc(r){
+  return { id:r.id, ts:r.ts, site:r.site||'', subject:r.subject, checks:r.checks, result:r.result, note:r.note||'', lat:r.lat, lon:r.lon, acc:r.acc, locSource:r.locSource||'',
+    photos: r.photos.map((p,i) => ({ id:p.id, asset:p.asset||null, thumb: i === 0 && p.thumb && p.thumb.startsWith('data:') ? p.thumb : null })) };
+}
 async function syncPending(){
   if(!caps.db || syncing) return;
   syncing = true; setSyncUI();
   let failed = 0;
-  for(const r of [...records.values()].filter(r => !r.synced).sort((a,b)=>(a.ts||'').localeCompare(b.ts||''))){
+  for(const r of sortedRecords().filter(r => !r.synced)){
     try{
-      if(r.blob && !r.photo && caps.assets){ const up = await caps.assets.upload(r.blob, { type:'image/jpeg' }); r.photo = up.id; await dbPut(r); }
+      for(const p of r.photos){ if(p.blob && !p.asset && caps.assets){ const up = await caps.assets.upload(p.blob, { type:'image/jpeg' }); p.asset = up.id; await dbPut(r); } }
       await caps.db.doc('inspections/' + r.id).set(toDoc(r));
       r.synced = true; await dbPut(r);
     }catch(e){ failed++; if(e && e.code === 'quota_exceeded'){ toast('Storage quota full; records stay on this device'); break; } }
@@ -692,7 +800,8 @@ async function mergeRemote(){
     let added = 0;
     for(const doc of snap.docs){
       const d = doc.data(); if(!d || records.has(doc.id)) continue;
-      const r = { ...d, id:doc.id, synced:true, blob:null, thumb: d.thumb || (d.photo ? '/_blob/' + d.photo : null) };
+      const r = migrate({ ...d, id:doc.id, synced:true });
+      r.photos = r.photos.map(p => ({ id:p.id || uid(), asset:p.asset||null, blob:null, thumb: p.thumb || (p.asset ? '/_blob/' + p.asset : null), saved:false }));
       records.set(r.id, r); try{ await dbPut(r); }catch(e){} added++;
     }
     if(added){ renderSubjects(); if(!el.viewLog.hidden) renderLog(); }
@@ -702,13 +811,17 @@ async function initCaps(){ setSyncUI(); }
 
 /* ---------- Export ---------- */
 function csvCell(v){ v = v == null ? '' : String(v); return /[",;\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; }
-function photoName(r){ const d = new Date(r.ts); const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}_${slug(r.subject)}_${r.id}.jpg`; }
+function photoName(r, i){ const d = new Date(r.ts); const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}_${slug(r.subject)}_${r.id}_${i+1}.jpg`; }
 function buildCsv(list){
-  const head = ['id','timestamp','site','subject','check','result','note','latitude','longitude','accuracy_m','location_source','photo_file'];
-  const rows = list.map(r => [r.id, r.ts, r.site||'', r.subject, r.check, r.result === 'ok' ? 'OK' : 'NOT OK', r.note||'', (r.lat == null ? '' : r.lat), (r.lon == null ? '' : r.lon), (r.acc == null ? '' : r.acc), r.locSource||'', (r.blob || r.photo) ? 'photos/' + photoName(r) : ''].map(csvCell).join(','));
+  const head = ['record_id','timestamp','site','subject','item','result','note','latitude','longitude','accuracy_m','location_source','photo_files'];
+  const rows = [];
+  for(const r of list){
+    const files = r.photos.map((p,i) => (p.blob || p.asset) ? 'photos/' + photoName(r, i) : '').filter(Boolean).join('; ');
+    for(const item of (r.checks.length ? r.checks : ['']))
+      rows.push([r.id, r.ts, r.site||'', r.subject, item, RESULT_LABEL[r.result] || '', r.note||'', (r.lat == null ? '' : r.lat), (r.lon == null ? '' : r.lon), (r.acc == null ? '' : r.acc), r.locSource||'', files].map(csvCell).join(','));
+  }
   return 'sep=,\n' + head.join(',') + '\n' + rows.join('\n') + '\n';
 }
-function sortedRecords(){ return [...records.values()].sort((a,b) => (a.ts||'').localeCompare(b.ts||'')); }
 async function saveFile(filename, data){
   try{
     const blob = data instanceof Blob ? data : new Blob([data], { type: filename.endsWith('.csv') ? 'text/csv' : 'application/octet-stream' });
@@ -720,9 +833,10 @@ async function saveFile(filename, data){
 }
 function anchorDownload(blob, name){ const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000); }
 el.savePhotos.addEventListener('click', async () => {
-  const list = sortedRecords().filter(r => r.blob && !r.savedToDevice);
-  if(!list.length){ toast(records.size ? 'All photos are already saved to this phone' : 'No photos yet'); return; }
-  const files = list.map(r => new File([r.blob], photoName(r), { type:'image/jpeg' }));
+  const items = [];
+  for(const r of sortedRecords()) r.photos.forEach((p,i) => { if(p.blob && !p.saved) items.push({ r, p, name: photoName(r, i) }); });
+  if(!items.length){ toast(records.size ? 'All photos are already saved to this phone' : 'No photos yet'); return; }
+  const files = items.map(x => new File([x.p.blob], x.name, { type:'image/jpeg' }));
   let done = false;
   try{
     if(navigator.canShare && navigator.canShare({ files })){ await navigator.share({ files, title:'Inspection photos' }); done = true; }
@@ -733,8 +847,10 @@ el.savePhotos.addEventListener('click', async () => {
     for(const f of files){ anchorDownload(f, f.name); await new Promise(r => setTimeout(r, 400)); }
     el.savePhotos.disabled = false; done = true;
   }
-  for(const r of list){ r.savedToDevice = true; try{ await dbPut(r); }catch(e){} }
-  toast(`${list.length} photo${list.length>1?'s':''} saved to this phone`);
+  const touched = new Set();
+  for(const x of items){ x.p.saved = true; touched.add(x.r); }
+  for(const r of touched){ try{ await dbPut(r); }catch(e){} }
+  toast(`${items.length} photo${items.length>1?'s':''} saved to this phone`);
 });
 el.exportCsv.addEventListener('click', () => saveFile(`inspection_${slug(el.site.value) || 'site'}_${new Date().toISOString().slice(0,10)}.csv`, buildCsv(sortedRecords())));
 el.exportZip.addEventListener('click', async () => {
@@ -747,9 +863,11 @@ el.exportZip.addEventListener('click', async () => {
     zip.file('records.json', JSON.stringify(list.map(toDoc), null, 2));
     const ph = zip.folder('photos');
     for(const r of list){
-      let bytes = r.blob;
-      if(!bytes && r.photo){ try{ const res = await fetch('/_blob/' + r.photo); if(res.ok) bytes = await res.blob(); }catch(e){} }
-      if(bytes) ph.file(photoName(r), bytes);
+      for(let i = 0; i < r.photos.length; i++){
+        const p = r.photos[i]; let bytes = p.blob;
+        if(!bytes && p.asset){ try{ const res = await fetch('/_blob/' + p.asset); if(res.ok) bytes = await res.blob(); }catch(e){} }
+        if(bytes) ph.file(photoName(r, i), bytes);
+      }
     }
     const blob = await zip.generateAsync({ type:'blob', compression:'STORE' });
     await saveFile(`inspection_${slug(el.site.value) || 'site'}_${new Date().toISOString().slice(0,10)}.zip`, blob);
@@ -757,10 +875,10 @@ el.exportZip.addEventListener('click', async () => {
   el.exportZip.disabled = false; el.exportZip.textContent = 'Export ZIP';
 });
 
+/* ---------- Header controls ---------- */
 function renderCamMode(){ const inpage = camPref() === 'inpage' && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia); el.camMode.textContent = inpage ? 'camera: in app' : 'camera: phone app'; }
 el.camMode.addEventListener('click', () => { setCamPref(camPref() === 'inpage' ? 'native' : 'inpage'); renderCamMode(); toast(camPref() === 'inpage' ? 'Photos are taken inside the app' : 'Photos are taken with the phone camera app'); });
 renderCamMode();
-/* ---------- Tabs & site ---------- */
 el.tabInspect.addEventListener('click', () => { renderResume(); showView('subjects'); });
 el.tabLog.addEventListener('click', () => { renderLog(); showView('log'); });
 try{ el.site.value = localStorage.getItem('pvfi.site') || ''; }catch(e){}
@@ -772,11 +890,10 @@ el.site.addEventListener('change', () => { try{ localStorage.setItem('pvfi.site'
   try{ idb = await openDb(); }catch(e){ idb = null; }
   try{
     const all = (await dbAll()) || [];
-    for(const r of all){ records.set(r.id, r); if(r.lat != null && (r.locSource === 'gps' || r.locSource === 'manual')) lastLoc = { lat:r.lat, lon:r.lon }; }
+    for(const raw of all){ const r = migrate(raw); records.set(r.id, r); if(r.lat != null && (r.locSource === 'gps' || r.locSource === 'manual')) lastLoc = { lat:r.lat, lon:r.lon }; }
     renderSubjects();
     const saved = await kvGet('draft');
-    if(saved && saved.subject && CHECKS[saved.subject] && !draftIsEmpty(saved)){ draft = saved; renderResume(); }
-    else if(saved) kvDel('draft').catch(()=>{});
+    if(saved && saved.subject && CHECKS[saved.subject]){ const d = migrate(saved); if(!draftIsEmpty(d)){ draft = d; renderResume(); } else kvDel('draft').catch(()=>{}); }
   }catch(e){}
   initCaps();
 })();
