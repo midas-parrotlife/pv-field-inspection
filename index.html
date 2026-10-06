@@ -287,7 +287,7 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
       </div>
     </div>
 
-    <div class="field">
+    <div class="field" id="sevField" hidden>
       <span class="lbl">Severity</span>
       <div class="seg sev">
         <button type="button" class="low" id="sevLow" aria-pressed="false">Low</button>
@@ -402,7 +402,7 @@ $('nojs').remove();
 const ids = ['site','sync','syncText','camMode','tabInspect','tabLog','logCount','viewSubjects','viewPick','viewForm','viewLog','subjects',
   'resume','resumeSubject','resumeGo','resumeDrop','pickBack','pickSubject','pickChecks','pickNoPhoto','pickPhoto',
   'back','formTitle','fSubject','fChecks','fPhotos','locText','locSrc','locRetry','locEdit','locEditor','latIn','lonIn',
-  'objectId','resOk','resNok','resNa','sevLow','sevMed','sevHigh','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
+  'objectId','resOk','resNok','resNa','sevField','sevLow','sevMed','sevHigh','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
   'cam','camView','camVideo','camSubject','camItems','camSkip','camClose','camMsg','camNative','camShot','camTorch','camFlip','camStage','camFlash','camZoom','camBrightBtn','camBrightRow','camBright','toast'];
 const el = {}; for(const id of ids) el[id] = $(id);
 
@@ -822,6 +822,7 @@ function openForm(){
   renderPhotos();
   for(const [id, r] of [['resOk','ok'],['resNok','nok'],['resNa','na']]) el[id].setAttribute('aria-pressed', draft.result === r);
   for(const [id, v] of SEV_BTN) el[id].setAttribute('aria-pressed', draft.severity === v);
+  el.sevField.hidden = draft.result !== 'nok';
   el.note.value = draft.note || '';
   el.objectId.value = draft.objectId || '';
   el.locEditor.hidden = true; el.formErr.textContent = '';
@@ -852,7 +853,7 @@ el.note.addEventListener('input', () => { draft.note = el.note.value; });
 el.objectId.addEventListener('input', () => { draft.objectId = el.objectId.value; });
 el.objectId.addEventListener('change', persistDraft);
 el.note.addEventListener('change', persistDraft);
-function setResult(r){ draft.result = r; for(const [id, v] of [['resOk','ok'],['resNok','nok'],['resNa','na']]) el[id].setAttribute('aria-pressed', v === r); persistDraft(); }
+function setResult(r){ draft.result = r; for(const [id, v] of [['resOk','ok'],['resNok','nok'],['resNa','na']]) el[id].setAttribute('aria-pressed', v === r); el.sevField.hidden = r !== 'nok'; if(r !== 'nok'){ draft.severity = ''; for(const [id] of SEV_BTN) el[id].setAttribute('aria-pressed', 'false'); } persistDraft(); }
 el.resOk.addEventListener('click', () => setResult('ok'));
 el.resNok.addEventListener('click', () => setResult('nok'));
 el.resNa.addEventListener('click', () => setResult('na'));
