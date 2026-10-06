@@ -36,9 +36,9 @@ button{cursor:pointer}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:10px 16px 0}
-.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:6px 12px;flex-wrap:wrap}
 .brand h1{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.04em;text-transform:uppercase;margin:0;white-space:nowrap}
-.sync{font-size:12px;color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:6px}
+.sync{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;margin-left:auto}
 .sync i{width:9px;height:9px;border-radius:50%;background:var(--muted);display:inline-block}
 .linkbtn{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;font-size:12px}
 .sync.on i{background:var(--ok)} .sync.pending i{background:var(--accent)}
@@ -103,7 +103,7 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 
 /* Log */
 .logbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-.logbar .btn{font-size:16px;padding:10px 14px}
+.logbar .btn{font-size:16px;padding:10px 12px}
 .logbar .spacer{flex:1}
 .summary{font-size:14px;color:var(--muted)}
 .rec{display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;border-left:5px solid var(--line)}
@@ -235,6 +235,7 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
     <div class="logbar">
       <span class="summary" id="logSummary"></span>
       <span class="spacer"></span>
+      <button class="btn ghost" id="savePhotos" type="button">Save photos</button>
       <button class="btn ghost" id="exportCsv" type="button">CSV</button>
       <button class="btn primary" id="exportZip" type="button">Export ZIP</button>
     </div>
@@ -273,6 +274,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <script>
 (() => {
 'use strict';
+const STANDALONE = true;
 
 /* ---------- Checklist (from inspection_list.xlsx) ---------- */
 const CHECKLIST = [
@@ -310,7 +312,7 @@ const el = {
   locText:$('locText'), locSrc:$('locSrc'), locEdit:$('locEdit'), locRetry:$('locRetry'), locEditor:$('locEditor'), latIn:$('latIn'), lonIn:$('lonIn'),
   check:$('check'), resOk:$('resOk'), resNok:$('resNok'), note:$('note'), formErr:$('formErr'), cancel:$('cancel'), save:$('save'),
   resume:$('resume'), resumeSubject:$('resumeSubject'), resumeGo:$('resumeGo'), resumeDrop:$('resumeDrop'),
-  camMode:$('camMode'), logSummary:$('logSummary'), exportCsv:$('exportCsv'), exportZip:$('exportZip'), records:$('records'), cam:$('cam'), toast:$('toast'), camView:$('camView'), camVideo:$('camVideo'), camSubject:$('camSubject'), camClose:$('camClose'), camMsg:$('camMsg'), camNative:$('camNative'), camShot:$('camShot'), camTorch:$('camTorch'),
+  camMode:$('camMode'), savePhotos:$('savePhotos'), logSummary:$('logSummary'), exportCsv:$('exportCsv'), exportZip:$('exportZip'), records:$('records'), cam:$('cam'), toast:$('toast'), camView:$('camView'), camVideo:$('camVideo'), camSubject:$('camSubject'), camClose:$('camClose'), camMsg:$('camMsg'), camNative:$('camNative'), camShot:$('camShot'), camTorch:$('camTorch'),
 };
 
 /* ---------- State ---------- */
@@ -716,6 +718,24 @@ async function saveFile(filename, data){
     toast('Export ready: ' + filename);
   }catch(e){ toast('Export failed'); }
 }
+function anchorDownload(blob, name){ const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000); }
+el.savePhotos.addEventListener('click', async () => {
+  const list = sortedRecords().filter(r => r.blob && !r.savedToDevice);
+  if(!list.length){ toast(records.size ? 'All photos are already saved to this phone' : 'No photos yet'); return; }
+  const files = list.map(r => new File([r.blob], photoName(r), { type:'image/jpeg' }));
+  let done = false;
+  try{
+    if(navigator.canShare && navigator.canShare({ files })){ await navigator.share({ files, title:'Inspection photos' }); done = true; }
+  }catch(e){ if(e && e.name === 'AbortError') return; }
+  if(!done){
+    if(!STANDALONE){ toast('Saving to the gallery is not possible in this view; use Export ZIP'); return; }
+    el.savePhotos.disabled = true;
+    for(const f of files){ anchorDownload(f, f.name); await new Promise(r => setTimeout(r, 400)); }
+    el.savePhotos.disabled = false; done = true;
+  }
+  for(const r of list){ r.savedToDevice = true; try{ await dbPut(r); }catch(e){} }
+  toast(`${list.length} photo${list.length>1?'s':''} saved to this phone`);
+});
 el.exportCsv.addEventListener('click', () => saveFile(`inspection_${slug(el.site.value) || 'site'}_${new Date().toISOString().slice(0,10)}.csv`, buildCsv(sortedRecords())));
 el.exportZip.addEventListener('click', async () => {
   if(!window.JSZip){ toast('ZIP library did not load; use CSV export'); return; }
