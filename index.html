@@ -249,6 +249,11 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
     </div>
 
     <div class="field">
+      <label for="objectId">Object ID</label>
+      <input id="objectId" placeholder="e.g. INV-03, string 12, row B7" autocomplete="off" autocapitalize="characters">
+    </div>
+
+    <div class="field">
       <span class="lbl">Result</span>
       <div class="seg">
         <button type="button" class="ok" id="resOk" aria-pressed="false">OK</button>
@@ -349,7 +354,7 @@ $('nojs').remove();
 const ids = ['site','sync','syncText','camMode','tabInspect','tabLog','logCount','viewSubjects','viewPick','viewForm','viewLog','subjects',
   'resume','resumeSubject','resumeGo','resumeDrop','pickBack','pickSubject','pickChecks','pickNoPhoto','pickPhoto',
   'back','formTitle','fSubject','fChecks','fPhotos','locText','locSrc','locRetry','locEdit','locEditor','latIn','lonIn',
-  'resOk','resNok','resNa','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
+  'objectId','resOk','resNok','resNa','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
   'cam','camView','camVideo','camSubject','camItems','camSkip','camClose','camMsg','camNative','camShot','camTorch','toast'];
 const el = {}; for(const id of ids) el[id] = $(id);
 
@@ -400,6 +405,7 @@ function migrate(r){
   }
   delete r.check; delete r.blob; delete r.thumb; delete r.photo; delete r.savedToDevice;
   if(!r.result) r.result = '';
+  if(r.objectId == null) r.objectId = '';
   return r;
 }
 
@@ -487,7 +493,7 @@ function showView(name){
   el.tabLog.setAttribute('aria-selected', name === 'log');
   window.scrollTo(0,0);
 }
-function draftIsEmpty(d){ return !d || (!(d.photos && d.photos.length) && !(d.checks && d.checks.length) && !d.result && !(d.note||'').trim()); }
+function draftIsEmpty(d){ return !d || (!(d.photos && d.photos.length) && !(d.checks && d.checks.length) && !d.result && !(d.note||'').trim() && !(d.objectId||'').trim()); }
 function renderResume(){
   el.resume.hidden = draftIsEmpty(draft);
   if(!el.resume.hidden) el.resumeSubject.textContent = draft.subject + (draft.checks.length ? ' · ' + draft.checks.length + ' item' + (draft.checks.length>1?'s':'') : '');
@@ -528,7 +534,7 @@ function renderCheckList(container, subject, selected, onChange){
 
 /* ---------- Start: subject → items → photo ---------- */
 function newDraft(subject){
-  return { id:uid(), subject, checks:[], result:'', note:'', lat:null, lon:null, acc:null, locSource:'', photos:[], ts:null };
+  return { id:uid(), subject, checks:[], objectId:'', result:'', note:'', lat:null, lon:null, acc:null, locSource:'', photos:[], ts:null };
 }
 function tapSubject(subject){
   if(draft && !draftIsEmpty(draft)){
@@ -665,6 +671,7 @@ function openForm(){
   renderPhotos();
   for(const [id, r] of [['resOk','ok'],['resNok','nok'],['resNa','na']]) el[id].setAttribute('aria-pressed', draft.result === r);
   el.note.value = draft.note || '';
+  el.objectId.value = draft.objectId || '';
   el.locEditor.hidden = true; el.formErr.textContent = '';
   renderLoc(); el.locRetry.hidden = draft.lat != null || !geoReason;
   showView('form');
@@ -690,6 +697,8 @@ el.fSubject.addEventListener('change', () => {
   renderCheckList(el.fChecks, draft.subject, draft.checks, persistDraft); persistDraft();
 });
 el.note.addEventListener('input', () => { draft.note = el.note.value; });
+el.objectId.addEventListener('input', () => { draft.objectId = el.objectId.value; });
+el.objectId.addEventListener('change', persistDraft);
 el.note.addEventListener('change', persistDraft);
 function setResult(r){ draft.result = r; for(const [id, v] of [['resOk','ok'],['resNok','nok'],['resNa','na']]) el[id].setAttribute('aria-pressed', v === r); persistDraft(); }
 el.resOk.addEventListener('click', () => setResult('ok'));
@@ -711,7 +720,7 @@ el.save.addEventListener('click', async () => {
   if(!draft.result) missing.push('OK, Not OK or N/A');
   if(missing.length){ el.formErr.textContent = 'Select ' + missing.join(' and ') + ' before saving.'; return; }
   if(draft.photos.some(p => p.busy)){ el.formErr.textContent = 'A photo is still being processed; wait a moment.'; return; }
-  const r = { ...draft, note: el.note.value.trim(), site: el.site.value.trim(), ts: draft.ts || new Date().toISOString(), synced:false };
+  const r = { ...draft, note: el.note.value.trim(), objectId: el.objectId.value.trim(), site: el.site.value.trim(), ts: draft.ts || new Date().toISOString(), synced:false };
   records.set(r.id, r);
   try{ await dbPut(r); }catch(e){ toast('Saved in memory only; local storage is unavailable'); }
   draft = null; kvDel('draft').catch(()=>{});
@@ -741,7 +750,7 @@ function renderLog(){
       </div>`;
     if(src) d.querySelector('img').src = src;
     d.querySelector('.subject').textContent = r.subject + (r.site ? ' · ' + r.site : '');
-    d.querySelector('.check').textContent = r.checks.join(', ');
+    d.querySelector('.check').textContent = (r.objectId ? r.objectId + ' — ' : '') + r.checks.join(', ');
     if(r.note) d.querySelector('.note').textContent = r.note;
     d.querySelector('.edit').addEventListener('click', () => editRecord(r));
     const del = d.querySelector('.del');
@@ -775,7 +784,7 @@ function setSyncUI(){
   el.sync.className = 'sync on'; el.syncText.textContent = 'synced';
 }
 function toDoc(r){
-  return { id:r.id, ts:r.ts, site:r.site||'', subject:r.subject, checks:r.checks, result:r.result, note:r.note||'', lat:r.lat, lon:r.lon, acc:r.acc, locSource:r.locSource||'',
+  return { id:r.id, ts:r.ts, site:r.site||'', subject:r.subject, objectId:r.objectId||'', checks:r.checks, result:r.result, note:r.note||'', lat:r.lat, lon:r.lon, acc:r.acc, locSource:r.locSource||'',
     photos: r.photos.map((p,i) => ({ id:p.id, asset:p.asset||null, thumb: i === 0 && p.thumb && p.thumb.startsWith('data:') ? p.thumb : null })) };
 }
 async function syncPending(){
@@ -811,14 +820,14 @@ async function initCaps(){ setSyncUI(); }
 
 /* ---------- Export ---------- */
 function csvCell(v){ v = v == null ? '' : String(v); return /[",;\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; }
-function photoName(r, i){ const d = new Date(r.ts); const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}_${slug(r.subject)}_${r.id}_${i+1}.jpg`; }
+function photoName(r, i){ const d = new Date(r.ts); const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}_${slug(r.subject)}${r.objectId ? '_' + slug(r.objectId) : ''}_${r.id}_${i+1}.jpg`; }
 function buildCsv(list){
-  const head = ['record_id','timestamp','site','subject','item','result','note','latitude','longitude','accuracy_m','location_source','photo_files'];
+  const head = ['record_id','timestamp','site','subject','object_id','item','result','note','latitude','longitude','accuracy_m','location_source','photo_files'];
   const rows = [];
   for(const r of list){
     const files = r.photos.map((p,i) => (p.blob || p.asset) ? 'photos/' + photoName(r, i) : '').filter(Boolean).join('; ');
     for(const item of (r.checks.length ? r.checks : ['']))
-      rows.push([r.id, r.ts, r.site||'', r.subject, item, RESULT_LABEL[r.result] || '', r.note||'', (r.lat == null ? '' : r.lat), (r.lon == null ? '' : r.lon), (r.acc == null ? '' : r.acc), r.locSource||'', files].map(csvCell).join(','));
+      rows.push([r.id, r.ts, r.site||'', r.subject, r.objectId||'', item, RESULT_LABEL[r.result] || '', r.note||'', (r.lat == null ? '' : r.lat), (r.lon == null ? '' : r.lon), (r.acc == null ? '' : r.acc), r.locSource||'', files].map(csvCell).join(','));
   }
   return 'sep=,\n' + head.join(',') + '\n' + rows.join('\n') + '\n';
 }
