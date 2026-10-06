@@ -40,6 +40,7 @@ button{cursor:pointer}
 .brand h1{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.04em;text-transform:uppercase;margin:0;white-space:nowrap}
 .sync{font-size:12px;color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:6px}
 .sync i{width:9px;height:9px;border-radius:50%;background:var(--muted);display:inline-block}
+.linkbtn{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;font-size:12px}
 .sync.on i{background:var(--ok)} .sync.pending i{background:var(--accent)}
 .siterow{display:flex;gap:8px;align-items:center;margin-top:8px}
 .siterow label{font-family:var(--display);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -119,6 +120,17 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 .rec .del.confirm{color:var(--nok);font-weight:600}
 .empty-state{text-align:center;color:var(--muted);padding:40px 16px}
 
+#camView{position:fixed;inset:0;z-index:30;background:#000;color:#fff;display:flex;flex-direction:column}
+#camVideo{flex:1;min-height:0;width:100%;object-fit:cover;background:#000}
+.camtop{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;background:linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,0))}
+.camtop span{font-family:var(--display);font-weight:600;font-size:20px}
+.camtop button,#camNative,#camTorch{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:8px 12px;font-size:14px}
+.cammsg{position:absolute;left:16px;right:16px;top:40%;text-align:center;background:rgba(0,0,0,.7);padding:14px;border-radius:8px;font-size:15px}
+.cambar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:14px 20px calc(18px + env(safe-area-inset-bottom,0px));background:#000}
+.cambar>:last-child{justify-self:end}
+#camShot{width:76px;height:76px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,.4);padding:0;display:grid;place-items:center;justify-self:center}
+#camShot span{width:60px;height:60px;border-radius:50%;background:#fff;border:3px solid #000;display:block}
+#camShot:disabled{opacity:.5}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:12px 14px;border-radius:8px;font-size:14px;z-index:20;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;text-align:center}
 #toast.show{opacity:1;transform:none}
 </style>
@@ -128,7 +140,7 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 <header class="top">
   <div class="brand">
     <h1>PV Field Inspection</h1>
-    <span class="sync" id="sync"><i></i><span id="syncText">local only</span></span>
+    <span class="sync" id="sync"><i></i><span id="syncText">local only</span><button type="button" id="camMode" class="linkbtn">camera: in app</button></span>
   </div>
   <div class="siterow">
     <label for="site">Site</label>
@@ -231,6 +243,16 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 </main>
 
 <input type="file" id="cam" accept="image/*" capture="environment" hidden>
+<div id="camView" hidden>
+  <video id="camVideo" autoplay playsinline muted></video>
+  <div class="camtop"><span id="camSubject"></span><button type="button" id="camClose">Close</button></div>
+  <div class="cammsg" id="camMsg" hidden></div>
+  <div class="cambar">
+    <button type="button" id="camNative">Camera app</button>
+    <button type="button" id="camShot" aria-label="Take photo"><span></span></button>
+    <button type="button" id="camTorch" hidden>Light</button>
+  </div>
+</div>
 <div id="toast" role="status"></div>
 
 <script>
@@ -288,7 +310,7 @@ const el = {
   locText:$('locText'), locSrc:$('locSrc'), locEdit:$('locEdit'), locRetry:$('locRetry'), locEditor:$('locEditor'), latIn:$('latIn'), lonIn:$('lonIn'),
   check:$('check'), resOk:$('resOk'), resNok:$('resNok'), note:$('note'), formErr:$('formErr'), cancel:$('cancel'), save:$('save'),
   resume:$('resume'), resumeSubject:$('resumeSubject'), resumeGo:$('resumeGo'), resumeDrop:$('resumeDrop'),
-  logSummary:$('logSummary'), exportCsv:$('exportCsv'), exportZip:$('exportZip'), records:$('records'), cam:$('cam'), toast:$('toast'),
+  camMode:$('camMode'), logSummary:$('logSummary'), exportCsv:$('exportCsv'), exportZip:$('exportZip'), records:$('records'), cam:$('cam'), toast:$('toast'), camView:$('camView'), camVideo:$('camVideo'), camSubject:$('camSubject'), camClose:$('camClose'), camMsg:$('camMsg'), camNative:$('camNative'), camShot:$('camShot'), camTorch:$('camTorch'),
 };
 
 /* ---------- State ---------- */
@@ -393,11 +415,11 @@ function geolocate(){
     let done = false; const finish = x => { if(!done){ done = true; res(x); } };
     try{
       if(!navigator.geolocation){ geoReason = 'This browser has no location support.'; return finish(null); }
-      if(window.isSecureContext === false || location.protocol === 'file:'){ geoReason = 'Browsers only allow GPS on an https:// address, not for a local file.'; return finish(null); }
+      if(window.isSecureContext === false){ geoReason = 'Browsers only allow GPS on an https:// address.'; return finish(null); }
       setTimeout(() => { geoReason = geoReason || 'GPS timed out. Go outside or wait for a fix, then retry.'; finish(null); }, 15000);
       navigator.geolocation.getCurrentPosition(
         p => finish({ lat:p.coords.latitude, lon:p.coords.longitude, acc:Math.round(p.coords.accuracy) }),
-        err => { geoReason = err && err.code === 1 ? 'Location permission denied. Allow location for this site in the browser and in Android/iOS settings.' : err && err.code === 2 ? 'Position unavailable. Check that location is switched on.' : 'GPS timed out. Go outside or wait for a fix, then retry.'; finish(null); },
+        err => { geoReason = err && err.code === 1 ? (location.protocol === 'file:' ? 'The browser blocks GPS for a locally opened file; open the app from its https:// address.' : 'Location permission denied. Allow location for this site in the browser and in Android/iOS settings.') : err && err.code === 2 ? 'Position unavailable. Check that location is switched on.' : 'GPS timed out. Go outside or wait for a fix, then retry.'; finish(null); },
         { enableHighAccuracy:true, timeout:14000, maximumAge:20000 });
     }catch(e){ geoReason = 'Location is blocked in this view.'; finish(null); }
   });
@@ -438,14 +460,56 @@ function renderSubjects(){
 
 /* ---------- Capture flow ---------- */
 let pendingSubject = null;
+let camStream = null, camTrack = null;
+function camPref(){ try{ return localStorage.getItem('pvfi.cam') || 'inpage'; }catch(e){ return 'inpage'; } }
+function setCamPref(v){ try{ localStorage.setItem('pvfi.cam', v); }catch(e){} }
 function startInspection(subject){
   pendingSubject = subject;
-  el.cam.value = '';
-  el.cam.click();
+  if(camPref() === 'inpage' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) openCamera(subject);
+  else { el.cam.value = ''; el.cam.click(); }
 }
-el.cam.addEventListener('change', async () => {
-  const file = el.cam.files && el.cam.files[0];
-  const subject = pendingSubject || (draft && draft.subject);
+async function openCamera(subject){
+  el.camSubject.textContent = subject; el.camMsg.hidden = true; el.camShot.disabled = false; el.camTorch.hidden = true;
+  el.camView.hidden = false;
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({ audio:false, video:{ facingMode:{ ideal:'environment' }, width:{ ideal:2560 }, height:{ ideal:1920 } } });
+    el.camVideo.srcObject = camStream;
+    camTrack = camStream.getVideoTracks()[0];
+    try{ const caps = camTrack.getCapabilities ? camTrack.getCapabilities() : {}; if(caps.torch) el.camTorch.hidden = false; }catch(e){}
+  }catch(e){
+    camStream = null; camTrack = null; el.camShot.disabled = true;
+    const denied = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
+    el.camMsg.textContent = denied ? 'Camera access is not allowed here. Use the camera app instead.' : 'No camera available in this view. Use the camera app instead.';
+    el.camMsg.hidden = false;
+    if(!denied || location.protocol !== 'https:') setCamPref('native');
+  }
+}
+function closeCamera(){
+  if(camStream){ camStream.getTracks().forEach(t => t.stop()); }
+  camStream = null; camTrack = null; el.camVideo.srcObject = null; el.camView.hidden = true;
+}
+async function grabFrame(){
+  if(camTrack && window.ImageCapture){
+    try{ const ic = new ImageCapture(camTrack); const blob = await Promise.race([ic.takePhoto(), new Promise((_,rej)=>setTimeout(()=>rej(new Error('slow')),4000))]); if(blob && blob.size > 0) return blob; }catch(e){}
+  }
+  const v = el.camVideo; if(!v.videoWidth) throw new Error('no frame');
+  const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v, 0, 0);
+  return new Promise(res => c.toBlob(res, 'image/jpeg', 0.92));
+}
+el.camShot.addEventListener('click', async () => {
+  el.camShot.disabled = true;
+  try{
+    const blob = await grabFrame();
+    closeCamera();
+    await acceptPhoto(blob, pendingSubject || (draft && draft.subject));
+  }catch(e){ el.camShot.disabled = false; toast('Could not capture; try again or use the camera app'); }
+});
+el.camClose.addEventListener('click', () => { closeCamera(); if(pendingSubject && draft && draft.subject === pendingSubject) openForm(); });
+el.camNative.addEventListener('click', () => { closeCamera(); el.cam.value = ''; el.cam.click(); });
+el.camTorch.addEventListener('click', async () => { if(!camTrack) return; try{ const on = !(camTrack.getSettings().torch); await camTrack.applyConstraints({ advanced:[{ torch:on }] }); el.camTorch.textContent = on ? 'Light off' : 'Light'; }catch(e){} });
+document.addEventListener('visibilitychange', () => { if(document.hidden && camStream) closeCamera(); });
+async function acceptPhoto(file, subject){
   if(!file || !subject) return;
   if(!draft || draft.subject !== subject) newDraft(subject);
   openForm();
@@ -457,7 +521,8 @@ el.cam.addEventListener('change', async () => {
     renderPhoto(); persistDraft();
     locate(gps);
   }catch(e){ el.photoEmpty.textContent = 'Could not read that photo. Try again.'; toast('Photo failed to load'); }
-});
+}
+el.cam.addEventListener('change', () => acceptPhoto(el.cam.files && el.cam.files[0], pendingSubject || (draft && draft.subject)));
 el.cam.addEventListener('cancel', () => {
   if(!pendingSubject) return;
   if(!draft || draft.subject !== pendingSubject) newDraft(pendingSubject);
@@ -511,7 +576,7 @@ function openForm(){
 }
 function persistDraft(){ if(draftIsEmpty(draft)) kvDel('draft').catch(()=>{}); else kvSet('draft', draft).catch(()=>{}); }
 
-el.retake.addEventListener('click', () => { pendingSubject = null; el.cam.value = ''; el.cam.click(); });
+el.retake.addEventListener('click', () => { startInspection(draft.subject); });
 el.back.addEventListener('click', () => leaveForm(false));
 el.cancel.addEventListener('click', () => leaveForm(true));
 function leaveForm(discard){
@@ -672,6 +737,9 @@ el.exportZip.addEventListener('click', async () => {
   el.exportZip.disabled = false; el.exportZip.textContent = 'Export ZIP';
 });
 
+function renderCamMode(){ const inpage = camPref() === 'inpage' && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia); el.camMode.textContent = inpage ? 'camera: in app' : 'camera: phone app'; }
+el.camMode.addEventListener('click', () => { setCamPref(camPref() === 'inpage' ? 'native' : 'inpage'); renderCamMode(); toast(camPref() === 'inpage' ? 'Photos are taken inside the app' : 'Photos are taken with the phone camera app'); });
+renderCamMode();
 /* ---------- Tabs & site ---------- */
 el.tabInspect.addEventListener('click', () => { renderResume(); showView('subjects'); });
 el.tabLog.addEventListener('click', () => { renderLog(); showView('log'); });
