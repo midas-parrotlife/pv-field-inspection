@@ -252,7 +252,8 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 
     <div class="field">
       <label for="objectId">Object ID</label>
-      <input id="objectId" placeholder="e.g. INV-03, string 12, row B7" autocomplete="off" autocapitalize="characters">
+      <input id="objectId" list="objectIds" placeholder="e.g. INV-03, string 12, row B7" autocomplete="off" autocapitalize="characters">
+      <datalist id="objectIds"></datalist>
     </div>
 
     <div class="field">
@@ -402,7 +403,7 @@ $('nojs').remove();
 const ids = ['site','sync','syncText','camMode','tabInspect','tabLog','logCount','viewSubjects','viewPick','viewForm','viewLog','subjects',
   'resume','resumeSubject','resumeGo','resumeDrop','pickBack','pickSubject','pickChecks','pickNoPhoto','pickPhoto',
   'back','formTitle','fSubject','fChecks','fPhotos','locText','locSrc','locRetry','locEdit','locEditor','latIn','lonIn',
-  'objectId','resOk','resNok','resNa','sevField','sevLow','sevMed','sevHigh','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
+  'objectId','objectIds','resOk','resNok','resNa','sevField','sevLow','sevMed','sevHigh','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
   'cam','camView','camVideo','camSubject','camItems','camSkip','camClose','camMsg','camNative','camShot','camTorch','camFlip','camStage','camFlash','camZoom','camBrightBtn','camBrightRow','camBright','toast'];
 const el = {}; for(const id of ids) el[id] = $(id);
 
@@ -814,8 +815,16 @@ function manualLoc(){
 el.latIn.addEventListener('change', manualLoc); el.lonIn.addEventListener('change', manualLoc);
 
 /* ---------- Form ---------- */
+function renderObjectIds(){
+  const same = new Set(), other = new Set();
+  for(const r of records.values()){ const v = (r.objectId||'').trim(); if(!v) continue; (r.subject === draft.subject ? same : other).add(v); }
+  for(const v of same) other.delete(v);
+  const sort = a => [...a].sort((x,y) => x.localeCompare(y, undefined, { numeric:true, sensitivity:'base' }));
+  el.objectIds.innerHTML = sort(same).concat(sort(other)).map(v => `<option value="${esc(v)}"></option>`).join('');
+}
 function openForm(){
   el.formTitle.textContent = draft.subject;
+  renderObjectIds();
   el.fSubject.innerHTML = SUBJECTS.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
   el.fSubject.value = draft.subject;
   renderCheckList(el.fChecks, draft.subject, draft.checks, persistDraft);
@@ -847,6 +856,7 @@ function persistDraft(){ if(draftIsEmpty(draft)) kvDel('draft').catch(()=>{}); e
 el.fSubject.addEventListener('change', () => {
   draft.subject = el.fSubject.value; draft.checks = [];
   el.formTitle.textContent = draft.subject;
+  renderObjectIds();
   renderCheckList(el.fChecks, draft.subject, draft.checks, persistDraft); persistDraft();
 });
 el.note.addEventListener('input', () => { draft.note = el.note.value; });
