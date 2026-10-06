@@ -106,6 +106,11 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 .seg button.ok[aria-pressed="true"]{border-color:var(--ok);background:var(--ok-soft);color:var(--ok)}
 .seg button.nok[aria-pressed="true"]{border-color:var(--nok);background:var(--nok-soft);color:var(--nok)}
 .seg button.na[aria-pressed="true"]{border-color:var(--na);background:var(--na-soft);color:var(--fg)}
+.seg.sev button{font-size:17px;padding:12px 6px}
+.seg button.low[aria-pressed="true"]{border-color:var(--ok);background:var(--ok-soft);color:var(--ok)}
+.seg button.med[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--fg)}
+.seg button.high[aria-pressed="true"]{border-color:var(--nok);background:var(--nok-soft);color:var(--nok)}
+.pill.sev-low{background:var(--ok-soft);color:var(--ok)} .pill.sev-med{background:var(--accent-soft);color:var(--fg)} .pill.sev-high{background:var(--nok-soft);color:var(--nok)}
 .actions{position:sticky;bottom:0;background:var(--bg);padding:12px 0 calc(8px + env(safe-area-inset-bottom,0px));margin-top:16px;display:flex;gap:8px}
 .btn{border:0;border-radius:8px;padding:14px 16px;font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
 .btn.primary{flex:1;background:var(--accent);color:var(--accent-ink)}
@@ -283,6 +288,15 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
     </div>
 
     <div class="field">
+      <span class="lbl">Severity</span>
+      <div class="seg sev">
+        <button type="button" class="low" id="sevLow" aria-pressed="false">Low</button>
+        <button type="button" class="med" id="sevMed" aria-pressed="false">Medium</button>
+        <button type="button" class="high" id="sevHigh" aria-pressed="false">High</button>
+      </div>
+    </div>
+
+    <div class="field">
       <label for="note">Notes</label>
       <textarea id="note" placeholder="What did you see? Location on site, severity, action needed…"></textarea>
     </div>
@@ -379,6 +393,8 @@ const CHECKS = Object.fromEntries(CHECKLIST);
 const SUBJECTS = CHECKLIST.map(x => x[0]);
 const OTHER = 'Other';
 const RESULT_LABEL = { ok:'OK', nok:'NOT OK', na:'N/A' };
+const SEV_LABEL = { low:'Low', med:'Medium', high:'High' };
+const SEV_BTN = [['sevLow','low'],['sevMed','med'],['sevHigh','high']];
 
 /* ---------- DOM ---------- */
 const $ = id => document.getElementById(id);
@@ -386,7 +402,7 @@ $('nojs').remove();
 const ids = ['site','sync','syncText','camMode','tabInspect','tabLog','logCount','viewSubjects','viewPick','viewForm','viewLog','subjects',
   'resume','resumeSubject','resumeGo','resumeDrop','pickBack','pickSubject','pickChecks','pickNoPhoto','pickPhoto',
   'back','formTitle','fSubject','fChecks','fPhotos','locText','locSrc','locRetry','locEdit','locEditor','latIn','lonIn',
-  'objectId','resOk','resNok','resNa','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
+  'objectId','resOk','resNok','resNa','sevLow','sevMed','sevHigh','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
   'cam','camView','camVideo','camSubject','camItems','camSkip','camClose','camMsg','camNative','camShot','camTorch','camFlip','camStage','camFlash','camZoom','camBrightBtn','camBrightRow','camBright','toast'];
 const el = {}; for(const id of ids) el[id] = $(id);
 
@@ -438,6 +454,7 @@ function migrate(r){
   delete r.check; delete r.blob; delete r.thumb; delete r.photo; delete r.savedToDevice;
   if(!r.result) r.result = '';
   if(r.objectId == null) r.objectId = '';
+  if(r.severity == null) r.severity = '';
   return r;
 }
 
@@ -525,7 +542,7 @@ function showView(name){
   el.tabLog.setAttribute('aria-selected', name === 'log');
   window.scrollTo(0,0);
 }
-function draftIsEmpty(d){ return !d || (!(d.photos && d.photos.length) && !(d.checks && d.checks.length) && !d.result && !(d.note||'').trim() && !(d.objectId||'').trim()); }
+function draftIsEmpty(d){ return !d || (!(d.photos && d.photos.length) && !(d.checks && d.checks.length) && !d.result && !d.severity && !(d.note||'').trim() && !(d.objectId||'').trim()); }
 function renderResume(){
   el.resume.hidden = draftIsEmpty(draft);
   if(!el.resume.hidden) el.resumeSubject.textContent = draft.subject + (draft.checks.length ? ' · ' + draft.checks.length + ' item' + (draft.checks.length>1?'s':'') : '');
@@ -566,7 +583,7 @@ function renderCheckList(container, subject, selected, onChange){
 
 /* ---------- Start: subject → items → photo ---------- */
 function newDraft(subject){
-  return { id:uid(), subject, checks:[], objectId:'', result:'', note:'', lat:null, lon:null, acc:null, locSource:'', photos:[], ts:null };
+  return { id:uid(), subject, checks:[], objectId:'', result:'', severity:'', note:'', lat:null, lon:null, acc:null, locSource:'', photos:[], ts:null };
 }
 function tapSubject(subject){
   if(draft && !draftIsEmpty(draft)){
@@ -804,6 +821,7 @@ function openForm(){
   renderCheckList(el.fChecks, draft.subject, draft.checks, persistDraft);
   renderPhotos();
   for(const [id, r] of [['resOk','ok'],['resNok','nok'],['resNa','na']]) el[id].setAttribute('aria-pressed', draft.result === r);
+  for(const [id, v] of SEV_BTN) el[id].setAttribute('aria-pressed', draft.severity === v);
   el.note.value = draft.note || '';
   el.objectId.value = draft.objectId || '';
   el.locEditor.hidden = true; el.formErr.textContent = '';
@@ -838,6 +856,8 @@ function setResult(r){ draft.result = r; for(const [id, v] of [['resOk','ok'],['
 el.resOk.addEventListener('click', () => setResult('ok'));
 el.resNok.addEventListener('click', () => setResult('nok'));
 el.resNa.addEventListener('click', () => setResult('na'));
+function setSeverity(v){ draft.severity = draft.severity === v ? '' : v; for(const [id, x] of SEV_BTN) el[id].setAttribute('aria-pressed', x === draft.severity); persistDraft(); }
+for(const [id, v] of SEV_BTN) el[id].addEventListener('click', () => setSeverity(v));
 el.back.addEventListener('click', () => leaveForm(false));
 el.cancel.addEventListener('click', () => leaveForm(true));
 function leaveForm(discard){
@@ -876,7 +896,7 @@ function renderLog(){
     const p0 = r.photos[0]; const src = p0 ? (p0.thumb || (p0.asset ? '/_blob/' + p0.asset : null)) : null;
     d.innerHTML = `<div class="im">${src ? `<img alt="">` : `<div class="noimg">no photo</div>`}${r.photos.length > 1 ? `<span class="cnt">${r.photos.length}</span>` : ''}</div>
       <div class="b">
-        <div class="l1"><span class="subject"></span><span class="pill ${r.result}">${RESULT_LABEL[r.result] || ''}</span></div>
+        <div class="l1"><span class="subject"></span><span>${r.severity ? `<span class="pill sev-${r.severity}">${SEV_LABEL[r.severity]}</span> ` : ''}<span class="pill ${r.result}">${RESULT_LABEL[r.result] || ''}</span></span></div>
         <div class="check"></div>
         <div class="note" ${r.note ? '' : 'hidden'}></div>
         <div class="m"><span>${fmtTs(r.ts)}</span><span>${r.lat != null ? fmtCoord(r.lat, r.lon) : 'no location'}</span></div>
@@ -918,7 +938,7 @@ function setSyncUI(){
   el.sync.className = 'sync on'; el.syncText.textContent = 'synced';
 }
 function toDoc(r){
-  return { id:r.id, ts:r.ts, site:r.site||'', subject:r.subject, objectId:r.objectId||'', checks:r.checks, result:r.result, note:r.note||'', lat:r.lat, lon:r.lon, acc:r.acc, locSource:r.locSource||'',
+  return { id:r.id, ts:r.ts, site:r.site||'', subject:r.subject, objectId:r.objectId||'', checks:r.checks, result:r.result, severity:r.severity||'', note:r.note||'', lat:r.lat, lon:r.lon, acc:r.acc, locSource:r.locSource||'',
     photos: r.photos.map((p,i) => ({ id:p.id, asset:p.asset||null, thumb: i === 0 && p.thumb && p.thumb.startsWith('data:') ? p.thumb : null })) };
 }
 async function syncPending(){
@@ -956,12 +976,12 @@ async function initCaps(){ setSyncUI(); }
 function csvCell(v){ v = v == null ? '' : String(v); return /[",;\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; }
 function photoName(r, i){ const d = new Date(r.ts); const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}_${slug(r.subject)}${r.objectId ? '_' + slug(r.objectId) : ''}_${r.id}_${i+1}.jpg`; }
 function buildCsv(list){
-  const head = ['record_id','timestamp','site','subject','object_id','item','result','note','latitude','longitude','accuracy_m','location_source','photo_files'];
+  const head = ['record_id','timestamp','site','subject','object_id','item','result','severity','note','latitude','longitude','accuracy_m','location_source','photo_files'];
   const rows = [];
   for(const r of list){
     const files = r.photos.map((p,i) => (p.blob || p.asset) ? 'photos/' + photoName(r, i) : '').filter(Boolean).join('; ');
     for(const item of (r.checks.length ? r.checks : ['']))
-      rows.push([r.id, r.ts, r.site||'', r.subject, r.objectId||'', item, RESULT_LABEL[r.result] || '', r.note||'', (r.lat == null ? '' : r.lat), (r.lon == null ? '' : r.lon), (r.acc == null ? '' : r.acc), r.locSource||'', files].map(csvCell).join(','));
+      rows.push([r.id, r.ts, r.site||'', r.subject, r.objectId||'', item, RESULT_LABEL[r.result] || '', SEV_LABEL[r.severity] || '', r.note||'', (r.lat == null ? '' : r.lat), (r.lon == null ? '' : r.lon), (r.acc == null ? '' : r.acc), r.locSource||'', files].map(csvCell).join(','));
   }
   return 'sep=,\n' + head.join(',') + '\n' + rows.join('\n') + '\n';
 }
