@@ -93,6 +93,8 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 .photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
 .ph{position:relative;aspect-ratio:1;max-width:100%;border-radius:8px;overflow:hidden;background:var(--soft);border:1px solid var(--line)}
 .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph .r{position:absolute;top:4px;left:4px;width:28px;height:28px;border-radius:50%;border:0;background:rgba(22,29,27,.75);color:#fff;display:grid;place-items:center;padding:0}
+.ph .r svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .ph .x{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;border:0;background:rgba(22,29,27,.75);color:#fff;font-size:16px;line-height:1;display:grid;place-items:center;padding:0}
 .ph.add{border:2px dashed var(--line);background:var(--card);display:grid;place-items:center;text-align:center;font-family:var(--display);font-weight:600;font-size:16px;color:var(--muted);padding:6px}
 .loc{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
@@ -158,6 +160,10 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 .tile.nok b{color:var(--nok)}
 .bysub{margin-top:10px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 12px}
 .bysub span b{color:var(--fg);font-weight:600}
+.rphead{display:flex;align-items:baseline;justify-content:space-between;margin-top:16px}
+.rphead .lbl{font-family:var(--display);font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.rpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:8px}
+.rpgrid .cap{font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* Camera */
 #camView{position:fixed;inset:0;z-index:30;background:#000;color:#fff;display:flex;flex-direction:column;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -357,6 +363,8 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
       <div class="tile"><b id="rsPhotos">0</b><span>photos</span></div>
     </div>
     <div id="rsBySubject" class="bysub"></div>
+    <div class="rphead" id="rpPhotosHead" hidden><span class="lbl">Photos</span><span class="summary">Tap ↻ on a photo that is on its side</span></div>
+    <div class="rpgrid" id="rpPhotos"></div>
 
     <div class="field"><label for="rpSite">Site name on report</label><input id="rpSite" placeholder="Site"></div>
     <div class="field"><label for="rpInspector">Inspector</label><input id="rpInspector" placeholder="Name(s)"></div>
@@ -867,7 +875,7 @@ const ids = ['site','sync','syncText','camMode','tabInspect','tabLog','logCount'
   'resume','resumeSubject','resumeGo','resumeDrop','pickBack','pickSubject','pickChecks','pickNoPhoto','pickPhoto',
   'back','formTitle','fSubject','fChecks','fPhotos','locText','locSrc','locRetry','locEdit','locEditor','latIn','lonIn',
   'objectId','objectIds','resOk','resNok','resNa','sevField','sevLow','sevMed','sevHigh','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
-  'tabReport','viewReport','zipPick','zipIn','srcList','incLocalRow','incLocal','incLocalText','rsum','rsRecords','rsItems','rsNok','rsPhotos','rsBySubject','rpSite','rpInspector','rpTitle','rpLegacy','mergeZip','makePdf','rpErr',
+  'tabReport','viewReport','zipPick','zipIn','srcList','incLocalRow','incLocal','incLocalText','rsum','rsRecords','rsItems','rsNok','rsPhotos','rsBySubject','rpPhotosHead','rpPhotos','rpSite','rpInspector','rpTitle','rpLegacy','mergeZip','makePdf','rpErr',
   'cam','camView','camVideo','camSubject','camItems','camSkip','camClose','camMsg','camNative','camShot','camTorch','camFlip','camStage','camFlash','camZoom','camBrightBtn','camBrightRow','camBright','toast'];
 const el = {}; for(const id of ids) el[id] = $(id);
 
@@ -931,17 +939,42 @@ function drawScaled(img, max, q, asBlob){
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
   return asBlob ? new Promise(res => c.toBlob(res, 'image/jpeg', q)) : c.toDataURL('image/jpeg', q);
 }
-async function processPhoto(file){
+async function processPhoto(file, rot){
   const buf = await file.arrayBuffer();
   let gps = null; try{ gps = parseExifGps(buf); }catch(e){}
   const url = URL.createObjectURL(file);
   try{
     const img = await loadImage(url);
-    const blob = await drawScaled(img, 1600, 0.82, true);
-    const thumb = drawScaled(img, 320, 0.7, false);
+    let blob = await drawScaled(img, 1600, 0.82, true);
+    let thumb = drawScaled(img, 320, 0.7, false);
+    if(rot){ const r = await rotateBlob(blob, rot, 0.85); blob = r.blob; thumb = r.thumb; }
     return { blob, thumb, gps };
   } finally { URL.revokeObjectURL(url); }
 }
+/* Rotate a JPEG blob by 0/90/180/270 degrees clockwise; returns {blob, thumb}. */
+async function rotateBlob(blob, rot, q){
+  rot = ((rot % 360) + 360) % 360;
+  const url = URL.createObjectURL(blob);
+  try{
+    const img = await loadImage(url);
+    const swap = rot === 90 || rot === 270;
+    const c = document.createElement('canvas'); c.width = swap ? img.naturalHeight : img.naturalWidth; c.height = swap ? img.naturalWidth : img.naturalHeight;
+    const ctx = c.getContext('2d'); ctx.translate(c.width/2, c.height/2); ctx.rotate(rot * Math.PI / 180); ctx.drawImage(img, -img.naturalWidth/2, -img.naturalHeight/2);
+    const out = await new Promise(res => c.toBlob(res, 'image/jpeg', q || 0.85));
+    const t = document.createElement('canvas'); const sc = Math.min(1, 320 / Math.max(c.width, c.height)); t.width = Math.round(c.width*sc); t.height = Math.round(c.height*sc);
+    t.getContext('2d').drawImage(c, 0, 0, t.width, t.height);
+    return { blob:out, thumb:t.toDataURL('image/jpeg', 0.7) };
+  } finally { URL.revokeObjectURL(url); }
+}
+/* Bytes of a photo as they should leave the app (rotation applied). */
+async function photoBytes(p){
+  let blob = p.blob;
+  if(!blob && p.asset){ try{ const res = await fetch('/_blob/' + p.asset); if(res.ok) blob = await res.blob(); }catch(e){} }
+  if(!blob) return null;
+  if(p.rot){ try{ return (await rotateBlob(blob, p.rot)).blob; }catch(e){} }
+  return blob;
+}
+const photoRotate = async p => { if(!p.blob || !p.rot) return; const r = await rotateBlob(p.blob, p.rot); p.blob = r.blob; p.thumb = r.thumb; p.rot = 0; };
 /* Minimal EXIF GPS reader (JPEG APP1 → TIFF → GPS IFD). */
 function parseExifGps(buf){
   const v = new DataView(buf);
@@ -1071,6 +1104,33 @@ el.pickNoPhoto.addEventListener('click', () => { openForm(); if(draft.lat == nul
 
 /* ---------- Camera ---------- */
 let camStream = null, camTrack = null, camReturn = 'form', camDevices = [];
+let tilt = null;                                           // last deviceorientation reading while the viewfinder is open
+const onTilt = e => { if(e && (e.beta != null || e.gamma != null)) tilt = { beta:e.beta, gamma:e.gamma, t:Date.now() }; };
+function screenAngle(){ try{ if(screen.orientation && typeof screen.orientation.angle === 'number') return screen.orientation.angle; }catch(e){} const o = window.orientation; return typeof o === 'number' ? ((o % 360) + 360) % 360 : 0; }
+/* Physical orientation of the phone from gravity (0 upright portrait, 90 rotated counter-clockwise, 270 clockwise, 180 upside down); null when flat. */
+function physicalAngle(){
+  if(!tilt || Date.now() - tilt.t > 3000) return null;
+  const b = tilt.beta, g = tilt.gamma;
+  if(Math.abs(g) < 40 && b > 40) return 0;
+  if(Math.abs(g) < 40 && b < -40) return 180;
+  if(g > 40) return 90;
+  if(g < -40) return 270;
+  return null;
+}
+/* Clockwise rotation that makes a captured frame upright: frame follows the screen, the scene follows gravity. */
+function captureRotation(){
+  const p = physicalAngle(); if(p == null) return 0;
+  return ((screenAngle() - p) % 360 + 360) % 360;
+}
+async function startTilt(){
+  try{
+    if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+      const r = await DeviceOrientationEvent.requestPermission(); if(r !== 'granted') return;
+    }
+    window.addEventListener('deviceorientation', onTilt);
+  }catch(e){}
+}
+function stopTilt(){ window.removeEventListener('deviceorientation', onTilt); tilt = null; }
 let zoomCaps = null, zoomVal = 1, digitalZoom = 1;       // hardware zoom when the track offers it, else a cropped digital zoom
 let expCaps = null, swBright = 1;                         // exposure compensation when offered, else a software brightness filter
 function camPref(){ try{ return localStorage.getItem('pvfi.cam') || 'inpage'; }catch(e){ return 'inpage'; } }
@@ -1080,7 +1140,7 @@ function setCamId(v){ try{ if(v) localStorage.setItem('pvfi.camId', v); else loc
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 function startCamera(from){
   camReturn = from;
-  if(camPref() === 'inpage' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) openCamera();
+  if(camPref() === 'inpage' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){ startTilt(); openCamera(); }
   else { el.cam.value = ''; el.cam.click(); }
 }
 async function openStream(){
@@ -1133,6 +1193,7 @@ async function openCamera(){
   }
 }
 function closeCamera(){
+  stopTilt();
   if(camStream){ camStream.getTracks().forEach(t => t.stop()); }
   camStream = null; camTrack = null; el.camVideo.srcObject = null; el.camView.hidden = true;
 }
@@ -1206,7 +1267,7 @@ el.camShot.addEventListener('click', async () => {
   el.camShot.disabled = true;
   el.camFlash.classList.add('on'); setTimeout(() => el.camFlash.classList.remove('on'), 60);
   try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
-  try{ const blob = await grabFrame(); closeCamera(); await acceptPhoto(blob); }
+  try{ const rot = captureRotation(); const blob = await grabFrame(); closeCamera(); await acceptPhoto(blob, rot); }
   catch(e){ el.camShot.disabled = false; toast('Could not capture; try again or use the camera app'); }
 });
 el.camSkip.addEventListener('click', () => { closeCamera(); openForm(); if(draft.lat == null) locate(null); });
@@ -1224,14 +1285,14 @@ document.addEventListener('visibilitychange', () => { if(document.hidden && camS
 el.cam.addEventListener('change', () => acceptPhoto(el.cam.files && el.cam.files[0]));
 el.cam.addEventListener('cancel', () => { if(draft){ openForm(); if(draft.lat == null) locate(null); } });
 
-async function acceptPhoto(file){
+async function acceptPhoto(file, rot){
   if(!file || !draft) return;
   const first = draft.photos.length === 0;
   openForm();
-  const ph = { id:uid(), blob:null, thumb:null, asset:null, saved:false, busy:true };
+  const ph = { id:uid(), blob:null, thumb:null, asset:null, saved:false, rot:0, busy:true };
   draft.photos.push(ph); renderPhotos();
   try{
-    const { blob, thumb, gps } = await processPhoto(file);
+    const { blob, thumb, gps } = await processPhoto(file, rot || 0);
     ph.blob = blob; ph.thumb = thumb; ph.busy = false;
     renderPhotos(); persistDraft();
     if(first){ if(gps && draft.lat == null) setLoc(gps.lat, gps.lon, null, 'photo'); locate(gps); }
@@ -1304,13 +1365,15 @@ function openForm(){
   renderLoc(); el.locRetry.hidden = draft.lat != null || !geoReason;
   showView('form');
 }
+const ROT_BTN = `<button type="button" class="r" aria-label="Rotate photo"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-3-6.2"/><path d="M20 4v5h-5"/></svg></button>`;
 function renderPhotos(){
   el.fPhotos.innerHTML = '';
   for(const p of draft.photos){
     const d = document.createElement('div'); d.className = 'ph';
     const src = p.thumb || (p.asset ? '/_blob/' + p.asset : null);
-    d.innerHTML = (src ? `<img alt="">` : `<div class="ph add" style="border:0">${p.busy ? 'Processing…' : 'No preview'}</div>`) + `<button type="button" class="x" aria-label="Remove photo">×</button>`;
-    if(src) d.querySelector('img').src = src;
+    d.innerHTML = (src ? `<img alt="">` : `<div class="ph add" style="border:0">${p.busy ? 'Processing…' : 'No preview'}</div>`) + (src ? ROT_BTN : '') + `<button type="button" class="x" aria-label="Remove photo">×</button>`;
+    if(src){ const im = d.querySelector('img'); im.src = src; if(p.rot) im.style.transform = `rotate(${p.rot}deg)`; }
+    const rb = d.querySelector('.r'); if(rb) rb.addEventListener('click', () => { p.rot = ((p.rot || 0) + 90) % 360; renderPhotos(); persistDraft(); });
     d.querySelector('.x').addEventListener('click', () => { draft.photos = draft.photos.filter(x => x !== p); renderPhotos(); persistDraft(); });
     el.fPhotos.appendChild(d);
   }
@@ -1351,6 +1414,7 @@ el.save.addEventListener('click', async () => {
   if(!draft.result) missing.push('OK, Not OK or N/A');
   if(missing.length){ el.formErr.textContent = 'Select ' + missing.join(' and ') + ' before saving.'; return; }
   if(draft.photos.some(p => p.busy)){ el.formErr.textContent = 'A photo is still being processed; wait a moment.'; return; }
+  for(const p of draft.photos){ try{ await photoRotate(p); }catch(e){} }
   const r = { ...draft, note: el.note.value.trim(), objectId: el.objectId.value.trim(), site: el.site.value.trim(), ts: draft.ts || new Date().toISOString(), synced:false };
   records.set(r.id, r);
   try{ await dbPut(r); }catch(e){ toast('Saved in memory only; local storage is unavailable'); }
@@ -1476,7 +1540,7 @@ el.savePhotos.addEventListener('click', async () => {
   const items = [];
   for(const r of sortedRecords()) r.photos.forEach((p,i) => { if(p.blob && !p.saved) items.push({ r, p, name: photoName(r, i) }); });
   if(!items.length){ toast(records.size ? 'All photos are already saved to this phone' : 'No photos yet'); return; }
-  const files = items.map(x => new File([x.p.blob], x.name, { type:'image/jpeg' }));
+  const files = []; for(const x of items){ const b = await photoBytes(x.p); if(b) files.push(new File([b], x.name, { type:'image/jpeg' })); }
   let done = false;
   try{
     if(navigator.canShare && navigator.canShare({ files })){ await navigator.share({ files, title:'Inspection photos' }); done = true; }
@@ -1503,11 +1567,7 @@ el.exportZip.addEventListener('click', async () => {
     zip.file('records.json', JSON.stringify(list.map(toDoc), null, 2));
     const ph = zip.folder('photos');
     for(const r of list){
-      for(let i = 0; i < r.photos.length; i++){
-        const p = r.photos[i]; let bytes = p.blob;
-        if(!bytes && p.asset){ try{ const res = await fetch('/_blob/' + p.asset); if(res.ok) bytes = await res.blob(); }catch(e){} }
-        if(bytes) ph.file(photoName(r, i), bytes);
-      }
+      for(let i = 0; i < r.photos.length; i++){ const bytes = await photoBytes(r.photos[i]); if(bytes) ph.file(photoName(r, i), bytes); }
     }
     const blob = await zip.generateAsync({ type:'blob', compression:'STORE' });
     await saveFile(`inspection_${slug(el.site.value) || 'site'}_${new Date().toISOString().slice(0,10)}.zip`, blob);
@@ -1517,6 +1577,8 @@ el.exportZip.addEventListener('click', async () => {
 
 /* ---------- Report: merge ZIPs + PDF ---------- */
 const sources = [];   // [{name, records}]
+const rotOverride = new Map();   // 'recordId:index' -> clockwise degrees, set from the photo grid
+let rpUrls = [];
 function normalizeImported(d){
   const r = migrate({ ...d });
   r.synced = true; r.site = r.site || '';
@@ -1555,7 +1617,24 @@ function mergedRecords(){
   };
   for(const src of sources) for(const r of src.records) put(r);
   if(el.incLocal.checked) for(const r of records.values()) put(r);
+  for(const r of map.values()) r.photos.forEach((p,i) => { const o = rotOverride.get(r.id + ':' + i); if(o != null) p.rot = o; });
   return [...map.values()].sort((a,b) => (a.ts||'').localeCompare(b.ts||''));
+}
+function renderReportPhotos(list){
+  rpUrls.forEach(u => URL.revokeObjectURL(u)); rpUrls = [];
+  el.rpPhotos.innerHTML = '';
+  let n = 0;
+  for(const r of list) r.photos.forEach((p,i) => {
+    const src = p.blob ? URL.createObjectURL(p.blob) : (p.thumb || (p.asset ? '/_blob/' + p.asset : null));
+    if(!src) return; if(p.blob) rpUrls.push(src); n++;
+    const w = document.createElement('div');
+    w.innerHTML = `<div class="ph"><img alt="">${ROT_BTN}</div><div class="cap"></div>`;
+    const im = w.querySelector('img'); im.src = src; if(p.rot) im.style.transform = `rotate(${p.rot}deg)`;
+    w.querySelector('.cap').textContent = r.subject + (r.objectId ? ' · ' + r.objectId : '');
+    w.querySelector('.r').addEventListener('click', () => { const v = ((p.rot || 0) + 90) % 360; rotOverride.set(r.id + ':' + i, v); p.rot = v; im.style.transform = v ? `rotate(${v}deg)` : ''; });
+    el.rpPhotos.appendChild(w);
+  });
+  el.rpPhotosHead.hidden = n === 0;
 }
 function renderReport(){
   el.srcList.innerHTML = '';
@@ -1572,7 +1651,8 @@ function renderReport(){
   const list = mergedRecords();
   const has = list.length > 0;
   el.rsum.hidden = !has; el.mergeZip.disabled = !has; el.makePdf.disabled = !has; el.rpErr.textContent = '';
-  if(!has){ el.rsBySubject.innerHTML = ''; return; }
+  if(!has){ el.rsBySubject.innerHTML = ''; renderReportPhotos([]); return; }
+  renderReportPhotos(list);
   el.rsRecords.textContent = list.length;
   el.rsItems.textContent = list.reduce((n,r) => n + r.checks.length, 0);
   el.rsNok.textContent = list.filter(r => r.result === 'nok').length;
@@ -1609,11 +1689,7 @@ el.mergeZip.addEventListener('click', async () => {
     zip.file('records.csv', buildCsv(list));
     zip.file('records.json', JSON.stringify(list.map(toDoc), null, 2));
     const ph = zip.folder('photos');
-    for(const r of list) for(let i = 0; i < r.photos.length; i++){
-      const p = r.photos[i]; let bytes = p.blob;
-      if(!bytes && p.asset){ try{ const res = await fetch('/_blob/' + p.asset); if(res.ok) bytes = await res.blob(); }catch(e){} }
-      if(bytes) ph.file(photoName(r, i), bytes);
-    }
+    for(const r of list) for(let i = 0; i < r.photos.length; i++){ const bytes = await photoBytes(r.photos[i]); if(bytes) ph.file(photoName(r, i), bytes); }
     const blob = await zip.generateAsync({ type:'blob', compression:'STORE' });
     await saveFile(`inspection_${slug(el.rpSite.value) || 'site'}_merged_${new Date().toISOString().slice(0,10)}.zip`, blob);
   }catch(e){ toast('Merge failed'); }
@@ -1622,8 +1698,7 @@ el.mergeZip.addEventListener('click', async () => {
 
 /* PDF */
 async function imageData(p, max){
-  let blob = p.blob;
-  if(!blob && p.asset){ try{ const res = await fetch('/_blob/' + p.asset); if(res.ok) blob = await res.blob(); }catch(e){} }
+  const blob = await photoBytes(p);
   if(!blob) return null;
   const url = URL.createObjectURL(blob);
   try{
@@ -1736,13 +1811,17 @@ async function buildPdf(list, meta, onProgress){
       doc.setFontSize(8.5); doc.setTextColor(...C.muted);
       text(`${fmtDT(r.ts)}${r.lat != null ? '   ·   ' + r.lat.toFixed(5) + ', ' + r.lon.toFixed(5) : ''}${r.site && r.site !== meta.site ? '   ·   ' + r.site : ''}`, M + 5, y); y += 5;
       if(noteLines.length){ doc.setFontSize(9.5); doc.setTextColor(...C.ink); text(noteLines, M + 5, y); y += noteLines.length * 4.4 + 1; }
+      let x = M + 5, rowOpen = false;
+      const PW2 = (CW - 5 - 3) / 2;
       for(let i = 0; i < imgs.length; i++){
-        if(i % 3 === 0) ensure(PH + 4);
-        const d = imgs[i]; const x = M + 5 + (i % 3) * (PW + 3);
-        const sc = Math.min(PW / d.w, PH / d.h), w = d.w * sc, h = d.h * sc;
+        const d = imgs[i]; const boxW = d.w > d.h * 1.15 ? PW2 : PW;
+        if(!rowOpen){ ensure(PH + 4); rowOpen = true; }
+        if(x + boxW > W - M + 0.5){ y += PH + 3; x = M + 5; ensure(PH + 4); }
+        const sc = Math.min(boxW / d.w, PH / d.h), w = d.w * sc, h = d.h * sc;
         doc.addImage(d.data, 'JPEG', x, y, w, h, undefined, 'FAST');
-        if(i % 3 === 2 || i === imgs.length - 1) y += PH + 3;
+        x += boxW + 3;
       }
+      if(rowOpen) y += PH + 3;
       y += 2; doc.setDrawColor(...C.line); doc.setLineWidth(0.2); doc.line(M, y, W - M, y); y += 6;
     }
     y += 2;
