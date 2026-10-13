@@ -1636,18 +1636,18 @@ const fmtDT = iso => { const d = new Date(iso); const p = n => String(n).padStar
 async function buildPdf(list, meta, onProgress){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit:'mm', format:'a4', compress:true });
-  const W = 210, H = 297, M = 15, CW = W - 2*M;
+  const W = 210, H = 297, M = 15, TOP = 20, CW = W - 2*M;
   const C = { ink:[22,29,27], muted:[93,105,102], line:[211,217,213], accent:[242,183,5], ok:[27,127,71], nok:[194,54,43], na:[93,105,102], sevH:[194,54,43], sevM:[214,150,0], sevL:[27,127,71] };
-  let y = M;
-  const ensure = h => { if(y + h > H - M - 6){ doc.addPage(); y = M; } };
+  let y = TOP;
+  const ensure = h => { if(y + h > H - M - 6){ doc.addPage(); y = TOP; } };
   const text = (t, x, yy, o) => doc.text(String(t), x, yy, o);
-  const sevColor = s => s === 'high' ? C.sevH : s === 'med' ? C.sevM : C.sevL;
+  const sevColor = s => s === 'high' ? C.sevH : s === 'med' ? C.sevM : s === 'low' ? C.sevL : C.nok;
 
+  const dates = list.map(r => r.ts).filter(Boolean).sort();
   /* Cover / summary */
   doc.setFont('helvetica','bold'); doc.setFontSize(24); doc.setTextColor(...C.ink);
   text(meta.title || 'Site Inspection Report', M, y + 8); y += 14;
   doc.setDrawColor(...C.accent); doc.setLineWidth(1.2); doc.line(M, y, M + 40, y); y += 8;
-  const dates = list.map(r => r.ts).filter(Boolean).sort();
   const span = dates.length ? (fmtDate(dates[0]) === fmtDate(dates[dates.length-1]) ? fmtDate(dates[0]) : fmtDate(dates[0]) + ' to ' + fmtDate(dates[dates.length-1])) : '-';
   const rows = [['Site', meta.site || '-'], ['Inspection date', span], ['Inspector', meta.inspector || '-'], ['Report generated', fmtDT(new Date().toISOString())]];
   doc.setFontSize(11);
@@ -1669,7 +1669,7 @@ async function buildPdf(list, meta, onProgress){
   const by = {};
   for(const r of list){ const c = by[r.subject] || (by[r.subject] = { items:0, ok:0, nok:0, na:0, high:0, med:0, low:0 }); c.items += r.checks.length; c[r.result] = (c[r.result] || 0) + 1; if(r.result === 'nok' && r.severity) c[r.severity]++; }
   doc.autoTable({
-    startY: y, margin:{ left:M, right:M }, theme:'grid',
+    startY: y, margin:{ left:M, right:M, top:TOP }, theme:'grid',
     head: [['Subject', 'Records', 'Items', 'OK', 'Not OK', 'N/A', 'High', 'Med', 'Low']],
     body: SUBJECTS.filter(s => by[s]).map(s => { const c = by[s]; return [s, c.ok + c.nok + c.na, c.items, c.ok, c.nok, c.na, c.high, c.med, c.low]; }),
     styles:{ fontSize:9, cellPadding:1.8, textColor:C.ink, lineColor:C.line, lineWidth:0.2 },
@@ -1718,10 +1718,10 @@ async function buildPdf(list, meta, onProgress){
   }
 
   /* Full log */
-  doc.addPage(); y = M;
+  doc.addPage(); y = TOP;
   doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...C.ink); text('All records', M, y); y += 3;
   doc.autoTable({
-    startY: y, margin:{ left:M, right:M }, theme:'grid',
+    startY: y, margin:{ left:M, right:M, top:TOP }, theme:'grid',
     head: [['Date', 'Subject', 'Object', 'Items', 'Result', 'Sev.', 'Note', 'Ph.']],
     body: list.map(r => [fmtDT(r.ts), r.subject, r.objectId || '', r.checks.join(', '), RESULT_LABEL[r.result] || '', r.severity ? SEV_LABEL[r.severity] : '', r.note || '', r.photos.filter(p => p.blob || p.asset).length || '']),
     styles:{ fontSize:7.5, cellPadding:1.4, textColor:C.ink, lineColor:C.line, lineWidth:0.2, overflow:'linebreak', valign:'top' },
@@ -1730,11 +1730,16 @@ async function buildPdf(list, meta, onProgress){
     didParseCell: d => { if(d.section === 'body' && d.column.index === 4){ const v = d.cell.raw; d.cell.styles.textColor = v === 'NOT OK' ? C.nok : v === 'OK' ? C.ok : C.na; d.cell.styles.fontStyle = 'bold'; } }
   });
 
-  /* Footer */
+  /* Running header and footer */
   const n = doc.getNumberOfPages();
   for(let i = 1; i <= n; i++){
     doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...C.muted);
-    text(`${meta.site || ''}${meta.site ? '  ·  ' : ''}${meta.title || 'Site Inspection Report'}`, M, H - 8);
+    if(i > 1){
+      text(`${meta.title || 'Site Inspection Report'}${meta.site ? '  ·  ' + meta.site : ''}`, M, 10);
+      text(`Inspection ${span}`, W - M, 10, { align:'right' });
+      doc.setDrawColor(...C.line); doc.setLineWidth(0.2); doc.line(M, 12.5, W - M, 12.5);
+    }
+    text(`${meta.site ? meta.site + '  ·  ' : ''}Inspection ${span}`, M, H - 8);
     text(`${i} / ${n}`, W - M, H - 8, { align:'right' });
   }
   return doc.output('blob');
