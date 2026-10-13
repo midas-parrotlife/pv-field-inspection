@@ -361,6 +361,7 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
     <div class="field"><label for="rpSite">Site name on report</label><input id="rpSite" placeholder="Site"></div>
     <div class="field"><label for="rpInspector">Inspector</label><input id="rpInspector" placeholder="Name(s)"></div>
     <div class="field"><label for="rpTitle">Report title</label><input id="rpTitle" value="Site Inspection Report"></div>
+    <label class="inc"><input type="checkbox" id="rpLegacy"> <span>Legacy layout: leave out Object ID and Severity (records from the first app version)</span></label>
 
     <div class="actions">
       <button class="btn ghost" id="mergeZip" type="button" disabled>Merged ZIP</button>
@@ -866,7 +867,7 @@ const ids = ['site','sync','syncText','camMode','tabInspect','tabLog','logCount'
   'resume','resumeSubject','resumeGo','resumeDrop','pickBack','pickSubject','pickChecks','pickNoPhoto','pickPhoto',
   'back','formTitle','fSubject','fChecks','fPhotos','locText','locSrc','locRetry','locEdit','locEditor','latIn','lonIn',
   'objectId','objectIds','resOk','resNok','resNa','sevField','sevLow','sevMed','sevHigh','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
-  'tabReport','viewReport','zipPick','zipIn','srcList','incLocalRow','incLocal','incLocalText','rsum','rsRecords','rsItems','rsNok','rsPhotos','rsBySubject','rpSite','rpInspector','rpTitle','mergeZip','makePdf','rpErr',
+  'tabReport','viewReport','zipPick','zipIn','srcList','incLocalRow','incLocal','incLocalText','rsum','rsRecords','rsItems','rsNok','rsPhotos','rsBySubject','rpSite','rpInspector','rpTitle','rpLegacy','mergeZip','makePdf','rpErr',
   'cam','camView','camVideo','camSubject','camItems','camSkip','camClose','camMsg','camNative','camShot','camTorch','camFlip','camStage','camFlash','camZoom','camBrightBtn','camBrightRow','camBright','toast'];
 const el = {}; for(const id of ids) el[id] = $(id);
 
@@ -1579,6 +1580,7 @@ function renderReport(){
   const by = {};
   for(const r of list){ const c = by[r.subject] || (by[r.subject] = { n:0, nok:0 }); c.n++; if(r.result === 'nok') c.nok++; }
   el.rsBySubject.innerHTML = SUBJECTS.filter(s => by[s]).map(s => `<span><b>${esc(s)}</b> ${by[s].n}${by[s].nok ? ` (${by[s].nok} NOK)` : ''}</span>`).join('');
+  if(!el.rpLegacy.dataset.touched) el.rpLegacy.checked = !list.some(r => (r.objectId||'').trim() || r.severity);
   if(!el.rpSite.value){
     const sites = {}; for(const r of list) if(r.site) sites[r.site] = (sites[r.site] || 0) + 1;
     const top = Object.entries(sites).sort((a,b) => b[1] - a[1])[0];
@@ -1596,6 +1598,7 @@ el.zipIn.addEventListener('change', async () => {
   el.zipPick.disabled = false; renderReport();
 });
 el.incLocal.addEventListener('change', renderReport);
+el.rpLegacy.addEventListener('change', () => { el.rpLegacy.dataset.touched = '1'; });
 el.tabReport.addEventListener('click', () => { renderReport(); showView('report'); });
 
 el.mergeZip.addEventListener('click', async () => {
@@ -1638,6 +1641,7 @@ async function buildPdf(list, meta, onProgress){
   const doc = new jsPDF({ unit:'mm', format:'a4', compress:true });
   const W = 210, H = 297, M = 15, TOP = 20, CW = W - 2*M;
   const C = { ink:[22,29,27], muted:[93,105,102], line:[211,217,213], accent:[242,183,5], ok:[27,127,71], nok:[194,54,43], na:[93,105,102], sevH:[194,54,43], sevM:[214,150,0], sevL:[27,127,71] };
+  const L = !!meta.legacy;
   let y = TOP;
   const ensure = h => { if(y + h > H - M - 6){ doc.addPage(); y = TOP; } };
   const text = (t, x, yy, o) => doc.text(String(t), x, yy, o);
@@ -1655,7 +1659,7 @@ async function buildPdf(list, meta, onProgress){
   y += 4;
   const nok = list.filter(r => r.result === 'nok');
   const sev = s => nok.filter(r => r.severity === s).length;
-  const tiles = [['Records', list.length], ['Items checked', list.reduce((n,r) => n + r.checks.length, 0)], ['Not OK', nok.length], ['High / Med / Low', `${sev('high')} / ${sev('med')} / ${sev('low')}`]];
+  const tiles = [['Records', list.length], ['Items checked', list.reduce((n,r) => n + r.checks.length, 0)], ['Not OK', nok.length], L ? ['Photos', list.reduce((n,r) => n + r.photos.filter(p => p.blob || p.asset).length, 0)] : ['High / Med / Low', `${sev('high')} / ${sev('med')} / ${sev('low')}`]];
   const tw = (CW - 3*4) / 4;
   tiles.forEach(([k, v], i) => {
     const x = M + i * (tw + 4);
@@ -1670,8 +1674,8 @@ async function buildPdf(list, meta, onProgress){
   for(const r of list){ const c = by[r.subject] || (by[r.subject] = { items:0, ok:0, nok:0, na:0, high:0, med:0, low:0 }); c.items += r.checks.length; c[r.result] = (c[r.result] || 0) + 1; if(r.result === 'nok' && r.severity) c[r.severity]++; }
   doc.autoTable({
     startY: y, margin:{ left:M, right:M, top:TOP }, theme:'grid',
-    head: [['Subject', 'Records', 'Items', 'OK', 'Not OK', 'N/A', 'High', 'Med', 'Low']],
-    body: SUBJECTS.filter(s => by[s]).map(s => { const c = by[s]; return [s, c.ok + c.nok + c.na, c.items, c.ok, c.nok, c.na, c.high, c.med, c.low]; }),
+    head: [L ? ['Subject', 'Records', 'Items', 'OK', 'Not OK', 'N/A'] : ['Subject', 'Records', 'Items', 'OK', 'Not OK', 'N/A', 'High', 'Med', 'Low']],
+    body: SUBJECTS.filter(s => by[s]).map(s => { const c = by[s]; const row = [s, c.ok + c.nok + c.na, c.items, c.ok, c.nok, c.na]; return L ? row : row.concat([c.high, c.med, c.low]); }),
     styles:{ fontSize:9, cellPadding:1.8, textColor:C.ink, lineColor:C.line, lineWidth:0.2 },
     headStyles:{ fillColor:[233,236,232], textColor:C.ink, fontStyle:'bold' },
     columnStyles:{ 0:{ cellWidth:60 }, 1:{ halign:'right' }, 2:{ halign:'right' }, 3:{ halign:'right' }, 4:{ halign:'right', fontStyle:'bold' }, 5:{ halign:'right' }, 6:{ halign:'right' }, 7:{ halign:'right' }, 8:{ halign:'right' } },
@@ -1687,19 +1691,19 @@ async function buildPdf(list, meta, onProgress){
   if(nok.length){
     doc.autoTable({
       startY: y, margin:{ left:M, right:M, top:TOP }, theme:'grid',
-      head: [['Severity', 'Subject', 'Object', 'Items', 'Note']],
-      body: nokSorted.map(r => [r.severity ? SEV_LABEL[r.severity] : '-', r.subject, r.objectId || '', r.checks.join(', '), r.note || '']),
+      head: [L ? ['Subject', 'Items', 'Note'] : ['Severity', 'Subject', 'Object', 'Items', 'Note']],
+      body: nokSorted.map(r => L ? [r.subject, r.checks.join(', '), r.note || ''] : [r.severity ? SEV_LABEL[r.severity] : '-', r.subject, r.objectId || '', r.checks.join(', '), r.note || '']),
       styles:{ fontSize:8.5, cellPadding:1.6, textColor:C.ink, lineColor:C.line, lineWidth:0.2, overflow:'linebreak', valign:'top' },
       headStyles:{ fillColor:[233,236,232], textColor:C.ink, fontStyle:'bold' },
-      columnStyles:{ 0:{ cellWidth:18, fontStyle:'bold' }, 1:{ cellWidth:28 }, 2:{ cellWidth:22 }, 3:{ cellWidth:48 } },
-      didParseCell: d => { if(d.section === 'body' && d.column.index === 0){ const v = String(d.cell.raw).toLowerCase(); d.cell.styles.textColor = v === 'high' ? C.sevH : v === 'medium' ? C.sevM : v === 'low' ? C.sevL : C.nok; } }
+      columnStyles: L ? { 0:{ cellWidth:34 }, 1:{ cellWidth:60 } } : { 0:{ cellWidth:18, fontStyle:'bold' }, 1:{ cellWidth:28 }, 2:{ cellWidth:22 }, 3:{ cellWidth:48 } },
+      didParseCell: d => { if(!L && d.section === 'body' && d.column.index === 0){ const v = String(d.cell.raw).toLowerCase(); d.cell.styles.textColor = v === 'high' ? C.sevH : v === 'medium' ? C.sevM : v === 'low' ? C.sevL : C.nok; } }
     });
     y = doc.lastAutoTable.finalY + 10;
   } else { y += 6; doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...C.muted); text('No items were marked Not OK.', M, y); y += 10; }
 
   /* Records per subject, in checklist order */
-  const resColor = r => r.result === 'ok' ? C.ok : r.result === 'na' ? C.na : sevColor(r.severity);
-  const resLabel = r => r.result === 'ok' ? 'OK' : r.result === 'na' ? 'N/A' : (r.severity ? 'NOT OK  ·  ' + SEV_LABEL[r.severity].toUpperCase() : 'NOT OK');
+  const resColor = r => r.result === 'ok' ? C.ok : r.result === 'na' ? C.na : (L ? C.nok : sevColor(r.severity));
+  const resLabel = r => r.result === 'ok' ? 'OK' : r.result === 'na' ? 'N/A' : (!L && r.severity ? 'NOT OK  ·  ' + SEV_LABEL[r.severity].toUpperCase() : 'NOT OK');
   const bySubject = SUBJECTS.filter(sj => list.some(r => r.subject === sj)).concat([...new Set(list.map(r => r.subject))].filter(sj => !SUBJECTS.includes(sj)));
   const PW = (CW - 5 - 2*3) / 3, PH = 42;
   let k = 0;
@@ -1725,7 +1729,7 @@ async function buildPdf(list, meta, onProgress){
       ensure(Math.min(need, H - TOP - M));
       doc.setFillColor(...resColor(r)); doc.rect(M, y, 1.6, 12, 'F');
       doc.setFont('helvetica','bold'); doc.setFontSize(11.5); doc.setTextColor(...C.ink);
-      text(`${k}.  ${r.objectId ? r.objectId : sj}`, M + 5, y + 5);
+      text(`${k}.  ${!L && r.objectId ? r.objectId : sj}`, M + 5, y + 5);
       doc.setFontSize(9); doc.setTextColor(...resColor(r)); text(resLabel(r), W - M, y + 5, { align:'right' });
       doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...C.ink);
       text(itemLines, M + 5, y + 10); y += 10 + itemLines.length * 4.2;
@@ -1749,12 +1753,12 @@ async function buildPdf(list, meta, onProgress){
   doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...C.ink); text('All records', M, y); y += 3;
   doc.autoTable({
     startY: y, margin:{ left:M, right:M, top:TOP }, theme:'grid',
-    head: [['Date', 'Subject', 'Object', 'Items', 'Result', 'Sev.', 'Note', 'Ph.']],
-    body: list.map(r => [fmtDT(r.ts), r.subject, r.objectId || '', r.checks.join(', '), RESULT_LABEL[r.result] || '', r.severity ? SEV_LABEL[r.severity] : '', r.note || '', r.photos.filter(p => p.blob || p.asset).length || '']),
+    head: [L ? ['Date', 'Subject', 'Items', 'Result', 'Note', 'Ph.'] : ['Date', 'Subject', 'Object', 'Items', 'Result', 'Sev.', 'Note', 'Ph.']],
+    body: list.map(r => L ? [fmtDT(r.ts), r.subject, r.checks.join(', '), RESULT_LABEL[r.result] || '', r.note || '', r.photos.filter(p => p.blob || p.asset).length || ''] : [fmtDT(r.ts), r.subject, r.objectId || '', r.checks.join(', '), RESULT_LABEL[r.result] || '', r.severity ? SEV_LABEL[r.severity] : '', r.note || '', r.photos.filter(p => p.blob || p.asset).length || '']),
     styles:{ fontSize:7.5, cellPadding:1.4, textColor:C.ink, lineColor:C.line, lineWidth:0.2, overflow:'linebreak', valign:'top' },
     headStyles:{ fillColor:[233,236,232], textColor:C.ink, fontStyle:'bold' },
-    columnStyles:{ 0:{ cellWidth:22 }, 1:{ cellWidth:24 }, 2:{ cellWidth:18 }, 3:{ cellWidth:40 }, 4:{ cellWidth:14 }, 5:{ cellWidth:12 }, 7:{ cellWidth:8, halign:'right' } },
-    didParseCell: d => { if(d.section === 'body' && d.column.index === 4){ const v = d.cell.raw; d.cell.styles.textColor = v === 'NOT OK' ? C.nok : v === 'OK' ? C.ok : C.na; d.cell.styles.fontStyle = 'bold'; } }
+    columnStyles: L ? { 0:{ cellWidth:22 }, 1:{ cellWidth:28 }, 2:{ cellWidth:50 }, 3:{ cellWidth:14 }, 5:{ cellWidth:8, halign:'right' } } : { 0:{ cellWidth:22 }, 1:{ cellWidth:24 }, 2:{ cellWidth:18 }, 3:{ cellWidth:40 }, 4:{ cellWidth:14 }, 5:{ cellWidth:12 }, 7:{ cellWidth:8, halign:'right' } },
+    didParseCell: d => { if(d.section === 'body' && d.column.index === (L ? 3 : 4)){ const v = d.cell.raw; d.cell.styles.textColor = v === 'NOT OK' ? C.nok : v === 'OK' ? C.ok : C.na; d.cell.styles.fontStyle = 'bold'; } }
   });
 
   /* Running header and footer */
@@ -1776,7 +1780,7 @@ el.makePdf.addEventListener('click', async () => {
   const list = mergedRecords(); if(!list.length) return;
   el.makePdf.disabled = true; const label = el.makePdf.textContent;
   try{
-    const blob = await buildPdf(list, { site:el.rpSite.value.trim(), inspector:el.rpInspector.value.trim(), title:el.rpTitle.value.trim() }, t => { el.makePdf.textContent = t; });
+    const blob = await buildPdf(list, { site:el.rpSite.value.trim(), inspector:el.rpInspector.value.trim(), title:el.rpTitle.value.trim(), legacy:el.rpLegacy.checked }, t => { el.makePdf.textContent = t; });
     await saveFile(`inspection_report_${slug(el.rpSite.value) || 'site'}_${new Date().toISOString().slice(0,10)}.pdf`, blob);
   }catch(e){ el.rpErr.textContent = 'PDF failed: ' + (e && e.message || e); }
   el.makePdf.disabled = false; el.makePdf.textContent = label;
