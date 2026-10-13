@@ -1679,42 +1679,69 @@ async function buildPdf(list, meta, onProgress){
   });
   y = doc.lastAutoTable.finalY + 10;
 
-  /* Findings */
+  /* Not OK summary on the cover */
   const order = { high:0, med:1, low:2, '':3 };
-  const findings = nok.slice().sort((a,b) => (order[a.severity||''] - order[b.severity||'']) || SUBJECTS.indexOf(a.subject) - SUBJECTS.indexOf(b.subject) || (a.ts||'').localeCompare(b.ts||''));
-  ensure(20);
-  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...C.ink); text(`Findings (${findings.length} not OK)`, M, y); y += 8;
-  if(!findings.length){ doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...C.muted); text('No items were marked Not OK.', M, y); y += 8; }
+  const nokSorted = nok.slice().sort((a,b) => (order[a.severity||''] - order[b.severity||'']) || SUBJECTS.indexOf(a.subject) - SUBJECTS.indexOf(b.subject) || (a.ts||'').localeCompare(b.ts||''));
+  ensure(24);
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...C.ink); text(`Not OK summary (${nok.length})`, M, y); y += 3;
+  if(nok.length){
+    doc.autoTable({
+      startY: y, margin:{ left:M, right:M, top:TOP }, theme:'grid',
+      head: [['Severity', 'Subject', 'Object', 'Items', 'Note']],
+      body: nokSorted.map(r => [r.severity ? SEV_LABEL[r.severity] : '-', r.subject, r.objectId || '', r.checks.join(', '), r.note || '']),
+      styles:{ fontSize:8.5, cellPadding:1.6, textColor:C.ink, lineColor:C.line, lineWidth:0.2, overflow:'linebreak', valign:'top' },
+      headStyles:{ fillColor:[233,236,232], textColor:C.ink, fontStyle:'bold' },
+      columnStyles:{ 0:{ cellWidth:18, fontStyle:'bold' }, 1:{ cellWidth:28 }, 2:{ cellWidth:22 }, 3:{ cellWidth:48 } },
+      didParseCell: d => { if(d.section === 'body' && d.column.index === 0){ const v = String(d.cell.raw).toLowerCase(); d.cell.styles.textColor = v === 'high' ? C.sevH : v === 'medium' ? C.sevM : v === 'low' ? C.sevL : C.nok; } }
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  } else { y += 6; doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...C.muted); text('No items were marked Not OK.', M, y); y += 10; }
+
+  /* Records per subject, in checklist order */
+  const resColor = r => r.result === 'ok' ? C.ok : r.result === 'na' ? C.na : sevColor(r.severity);
+  const resLabel = r => r.result === 'ok' ? 'OK' : r.result === 'na' ? 'N/A' : (r.severity ? 'NOT OK  ·  ' + SEV_LABEL[r.severity].toUpperCase() : 'NOT OK');
+  const bySubject = SUBJECTS.filter(sj => list.some(r => r.subject === sj)).concat([...new Set(list.map(r => r.subject))].filter(sj => !SUBJECTS.includes(sj)));
+  const PW = (CW - 5 - 2*3) / 3, PH = 42;
   let k = 0;
-  for(const r of findings){
-    k++; if(onProgress) onProgress(`Finding ${k} of ${findings.length}`);
-    const imgs = []; for(const p of r.photos){ const d = await imageData(p, 900); if(d) imgs.push(d); }
-    const PW = (CW - 2*3) / 3, PH = 42;
-    const noteLines = r.note ? doc.setFontSize(9.5) && doc.splitTextToSize(r.note, CW - 4) : [];
-    const photoRows = Math.ceil(imgs.length / 3);
-    const need = 18 + noteLines.length * 4.4 + photoRows * (PH + 3) + 6;
-    ensure(Math.min(need, H - 2*M));
-    const top = y;
-    doc.setFillColor(...sevColor(r.severity)); doc.rect(M, y, 1.6, 12, 'F');
-    doc.setFont('helvetica','bold'); doc.setFontSize(11.5); doc.setTextColor(...C.ink);
-    text(`${k}.  ${r.subject}${r.objectId ? '  ·  ' + r.objectId : ''}`, M + 5, y + 5);
-    const sevTxt = r.severity ? SEV_LABEL[r.severity].toUpperCase() : 'NOT OK';
-    doc.setFontSize(9); doc.setTextColor(...sevColor(r.severity)); text(sevTxt, W - M, y + 5, { align:'right' });
-    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...C.ink);
-    const itemLines = doc.splitTextToSize(r.checks.join(', '), CW - 5);
-    text(itemLines, M + 5, y + 10); y += 10 + itemLines.length * 4.2;
-    doc.setFontSize(8.5); doc.setTextColor(...C.muted);
-    text(`${fmtDT(r.ts)}${r.lat != null ? '   ·   ' + r.lat.toFixed(5) + ', ' + r.lon.toFixed(5) : ''}${r.site ? '   ·   ' + r.site : ''}`, M + 5, y); y += 5;
-    if(noteLines.length){ doc.setFontSize(9.5); doc.setTextColor(...C.ink); text(noteLines, M + 5, y); y += noteLines.length * 4.4 + 1; }
-    for(let i = 0; i < imgs.length; i++){
-      if(i % 3 === 0){ ensure(PH + 4); }
-      const d = imgs[i]; const x = M + 5 + (i % 3) * (PW - 1.7 + 3);
-      const w0 = PW - 1.7, sc = Math.min(w0 / d.w, PH / d.h), w = d.w * sc, h = d.h * sc;
-      doc.addImage(d.data, 'JPEG', x, y, w, h, undefined, 'FAST');
-      if(i % 3 === 2 || i === imgs.length - 1) y += PH + 3;
+  doc.addPage(); y = TOP;
+  doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor(...C.ink); text('Inspection records', M, y); y += 9;
+  for(const sj of bySubject){
+    const recs = list.filter(r => r.subject === sj).sort((a,b) => (a.objectId||'').localeCompare(b.objectId||'', undefined, { numeric:true }) || (a.ts||'').localeCompare(b.ts||''));
+    const nNok = recs.filter(r => r.result === 'nok').length;
+    ensure(recs[0].photos.length ? 85 : 45);
+    doc.setFillColor(233,236,232); doc.rect(M, y - 5, CW, 9, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(...C.ink); text(sj, M + 3, y + 1.2);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...(nNok ? C.nok : C.muted));
+    text(`${recs.length} record${recs.length === 1 ? '' : 's'}${nNok ? '  ·  ' + nNok + ' not OK' : '  ·  no issues'}`, W - M - 3, y + 1.2, { align:'right' });
+    y += 11;
+    for(const r of recs){
+      k++; if(onProgress) onProgress(`Record ${k} of ${list.length}`);
+      const imgs = []; for(const p of r.photos){ const d = await imageData(p, 900); if(d) imgs.push(d); }
+      doc.setFontSize(9.5);
+      const noteLines = r.note ? doc.splitTextToSize(r.note, CW - 5) : [];
+      const itemLines = doc.splitTextToSize(r.checks.join(', '), CW - 45);
+      const photoRows = Math.ceil(imgs.length / 3);
+      const need = 10 + itemLines.length * 4.2 + 5 + noteLines.length * 4.4 + Math.min(photoRows, 1) * (PH + 3) + 8;
+      ensure(Math.min(need, H - TOP - M));
+      doc.setFillColor(...resColor(r)); doc.rect(M, y, 1.6, 12, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(11.5); doc.setTextColor(...C.ink);
+      text(`${k}.  ${r.objectId ? r.objectId : sj}`, M + 5, y + 5);
+      doc.setFontSize(9); doc.setTextColor(...resColor(r)); text(resLabel(r), W - M, y + 5, { align:'right' });
+      doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...C.ink);
+      text(itemLines, M + 5, y + 10); y += 10 + itemLines.length * 4.2;
+      doc.setFontSize(8.5); doc.setTextColor(...C.muted);
+      text(`${fmtDT(r.ts)}${r.lat != null ? '   ·   ' + r.lat.toFixed(5) + ', ' + r.lon.toFixed(5) : ''}${r.site && r.site !== meta.site ? '   ·   ' + r.site : ''}`, M + 5, y); y += 5;
+      if(noteLines.length){ doc.setFontSize(9.5); doc.setTextColor(...C.ink); text(noteLines, M + 5, y); y += noteLines.length * 4.4 + 1; }
+      for(let i = 0; i < imgs.length; i++){
+        if(i % 3 === 0) ensure(PH + 4);
+        const d = imgs[i]; const x = M + 5 + (i % 3) * (PW + 3);
+        const sc = Math.min(PW / d.w, PH / d.h), w = d.w * sc, h = d.h * sc;
+        doc.addImage(d.data, 'JPEG', x, y, w, h, undefined, 'FAST');
+        if(i % 3 === 2 || i === imgs.length - 1) y += PH + 3;
+      }
+      y += 2; doc.setDrawColor(...C.line); doc.setLineWidth(0.2); doc.line(M, y, W - M, y); y += 6;
     }
-    y += 2; doc.setDrawColor(...C.line); doc.setLineWidth(0.2); doc.line(M, y, W - M, y); y += 6;
-    void top;
+    y += 2;
   }
 
   /* Full log */
