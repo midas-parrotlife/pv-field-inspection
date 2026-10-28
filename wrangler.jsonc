@@ -5,7 +5,8 @@
   "compatibility_date": "2026-10-29",
   "assets": { "directory": "." },
   "workers_dev": true,
+  // Naming rule: subdomain = repo name = worker name.
   "routes": [
-    { "pattern": "pv.parrotlife.nl", "custom_domain": true }
+    { "pattern": "pv-field-inspection.parrotlife.nl", "custom_domain": true }
   ]
 }
