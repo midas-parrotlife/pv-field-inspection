@@ -1,0 +1,11 @@
+{
+  // Static-assets-only Worker: serves index.html from the repo root (no script).
+  // index.html stays at the root so GitHub Pages keeps working during the move.
+  "name": "pv-field-inspection",
+  "compatibility_date": "2026-10-29",
+  "assets": { "directory": "." },
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "pv.parrotlife.nl", "custom_domain": true }
+  ]
+}

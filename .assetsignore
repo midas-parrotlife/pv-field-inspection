@@ -1,0 +1,9 @@
+# Files in the repo that must not be served as assets
+.git
+.github
+.assetsignore
+.nojekyll
+wrangler.jsonc
+README.md
+CLAUDE.md
+node_modules
