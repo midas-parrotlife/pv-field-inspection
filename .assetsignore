@@ -1,6 +1,7 @@
 # Files in the repo that must not be served as assets
 .git
 .github
+.wrangler
 .assetsignore
 .nojekyll
 wrangler.jsonc
