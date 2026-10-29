@@ -21,7 +21,12 @@ This app is a **proof of concept**, designed and written entirely with AI (Anthr
 - All inspection data (records, photos, notes, locations) is stored only in the browser on the user's device (IndexedDB). There is no server, account, database, analytics, cookie or tracker.
 - Data leaves the device only when the user exports it (ZIP, CSV, photos, PDF).
 - The only network request is loading `index.html` from Cloudflare, which receives the visitor's IP address, user agent and request time, like any web host. Fonts and libraries are embedded in the file, so nothing is loaded from Google or CDNs.
+- A Content Security Policy (meta tag in `index.html`) only allows the four embedded scripts (pinned by SHA-256 hash) and blocks all outgoing connections (`connect-src 'none'`), so even injected code cannot send data anywhere.
+- Imported ZIPs are untrusted: every record is validated (allowed values for result, severity and location source; numeric coordinates; length limits; safe ids and file names; photo previews only as embedded images) before it is stored or shown.
+- Data is kept with `navigator.storage.persist()` where the browser allows it. On iPhone/iPad, Safari deletes site data after 7 days without a visit unless the app is added to the Home Screen; the app shows that advice there and reminds users to export a ZIP when an inspection has unexported changes.
 - Keep it that way: do not add external fonts, scripts or Cloudflare Web Analytics, or update the About text in `index.html` and this section.
+
+**Editing `index.html`:** the CSP pins the exact text of each `<script>`. If you change a script by hand, the browser will refuse to run it until the matching `sha256-…` value in the CSP meta tag is updated. Rebuild the hashes after any script change.
 
 ## Licence
 

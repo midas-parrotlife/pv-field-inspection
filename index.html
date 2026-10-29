@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-pn/pM7ezZfa02XZjfK8GbgqGnbRxQ7f34EI14FT1JL4=' 'sha256-DD3Wsn3yxPXFVmDz/t+8wMNvtAkPQed8Pfb0TTUMZ/8=' 'sha256-8qu2BQUSHhsRm5fhQc8ztO+dVFln0qnYH35UHGHqM68=' 'sha256-okgo2IqfvIJvsnaFPG3gr9sA0lMRJF+QO99Qkb5hDSw='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; media-src 'self' blob: mediastream:; connect-src 'none'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -77,6 +78,12 @@ button{cursor:pointer}
 .warn .linkbtn{color:var(--nok);font-size:14px;font-weight:600}
 .btn.danger{background:var(--nok);color:#fff}
 .backlink{margin:0 0 12px}
+.note-ios,.note-backup{border-radius:10px;padding:12px 14px;margin:0 0 12px;font-size:14px;line-height:1.45;background:var(--accent-soft);border:1px solid var(--accent)}
+.note-ios b{display:block;margin-bottom:2px}
+.note-backup{display:flex;align-items:center;gap:12px}
+.note-backup span{flex:1;min-width:0}
+.note-backup .btn{font-size:15px;padding:9px 12px;white-space:nowrap}
+#backupInfo{margin-top:10px}
 .fine{margin:18px 2px 8px;font-size:12.5px;color:var(--muted);line-height:1.45}
 .fine .linkbtn{font-size:12.5px}
 .about{max-width:62ch}
@@ -294,6 +301,10 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 <main>
     <div class="nojs" id="nojs">This is a preview that cannot run the app. Save the file and open it in Chrome (Android) or put it on a website and open it in Safari (iPhone).</div>
   <section id="viewStart" hidden>
+    <div class="note-ios" id="iosNote" hidden>
+      <b>On iPhone or iPad: add this app to your Home Screen.</b>
+      Tap the Share button, then <i>Add to Home Screen</i>, and start inspections from that icon. In a normal Safari tab, Safari deletes everything stored here after 7 days without a visit. The Home Screen app keeps its own storage, so export anything you started in Safari and load the ZIP there.
+    </div>
     <p class="backlink" id="startBackRow" hidden><button type="button" class="linkbtn" id="startBack">← Back to the current inspection</button></p>
 
     <div id="inspListWrap" hidden>
@@ -341,6 +352,7 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
       <h3>Your data</h3>
       <div data-variant="web">
         <p><b>Everything you record stays on this device.</b> Inspections, photos, notes and locations are stored only in this browser on this phone. The app has no server, no account and no database, and it never uploads your inspection data.</p>
+        <p><b>Keep backups.</b> The app asks the browser to protect its storage from automatic clean-up, but browsers may still clear it when a phone runs low on space. On iPhone and iPad, Safari deletes site data after 7 days without a visit unless the app is added to the Home Screen. Export a ZIP regularly; the app reminds you when an inspection has changes that are not exported.</p>
         <p><b>Data only leaves the device when you do it yourself</b>: with Export ZIP, Save CSV, Save photos or a PDF report, to wherever you save or share that file.</p>
         <p><b>Loading the page is the only network request.</b> Your browser downloads the page from pv-field-inspection.parrotlife.nl, which is hosted by Cloudflare, Inc. Like any web host, Cloudflare receives your IP address, your browser type and the time of that request, and may keep them in its server logs. Nothing else is shared with Cloudflare or anyone else. The page uses no cookies, analytics or trackers, and loads no fonts or scripts from other servers. After loading, the app makes no network requests at all.</p>
       </div>
@@ -357,6 +369,7 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
   </section>
 
   <section id="viewSubjects" hidden>
+    <div class="note-backup" id="backupNote" hidden><span id="backupText"></span><button type="button" class="btn ghost" id="backupGo">Export ZIP</button></div>
     <p class="hint">Tap a subject, pick the items you are checking, then take photos.</p>
     <div class="resume" id="resume" hidden><div class="t"><span>Unsaved record</span><b id="resumeSubject"></b></div><button type="button" id="resumeGo">Continue</button><button type="button" id="resumeDrop">Discard</button></div>
     <div class="subjects" id="subjects">
@@ -497,6 +510,8 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
       <button class="excard" id="exportCsv" type="button"><b>Save CSV</b><span>Table for Excel</span></button>
       <button class="excard main" id="exportZip" type="button"><b>Export ZIP</b><span>This inspection: CSV, JSON and all photos. Open it on another phone or keep it as backup.</span></button>
     </div>
+
+    <p class="hint" id="backupInfo"></p>
 
     <h3 class="sec">PDF report</h3>
     <p class="hint">The report uses the inspection details. Changes here are saved for the whole inspection.</p>
@@ -1006,7 +1021,7 @@ const SEV_BTN = [['sevLow','low'],['sevMed','med'],['sevHigh','high']];
 /* ---------- DOM ---------- */
 const $ = id => document.getElementById(id);
 $('nojs').remove();
-const ids = ['viewAbout','aboutBack','inspRow','hdrSite','hdrSub','hdrChange','viewStart','startBackRow','startBack','inspListWrap','inspList','nwSite','nwSubject','nwInspectors','nwErr','nwGo','ldGo','ldIn','ldErr','sync','syncText','camMode','tabInspect','tabLog','logCount','viewSubjects','viewPick','viewForm','viewLog','subjects',
+const ids = ['iosNote','backupNote','backupText','backupGo','backupInfo','viewAbout','aboutBack','inspRow','hdrSite','hdrSub','hdrChange','viewStart','startBackRow','startBack','inspListWrap','inspList','nwSite','nwSubject','nwInspectors','nwErr','nwGo','ldGo','ldIn','ldErr','sync','syncText','camMode','tabInspect','tabLog','logCount','viewSubjects','viewPick','viewForm','viewLog','subjects',
   'resume','resumeSubject','resumeGo','resumeDrop','pickBack','pickSubject','pickChecks','pickNoPhoto','pickPhoto',
   'back','formTitle','fSubject','fChecks','fPhotos','locText','locSrc','locRetry','locEdit','locEditor','latIn','lonIn',
   'objectId','objectIds','resOk','resNok','resNa','sevField','sevLow','sevMed','sevHigh','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
@@ -1025,7 +1040,7 @@ let toastTimer;
 
 function toast(msg, ms=2600){ el.toast.textContent = msg; el.toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(()=>el.toast.classList.remove('show'), ms); }
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
-const fmtCoord = (lat,lon) => `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+const fmtCoord = (lat,lon) => Number.isFinite(lat) && Number.isFinite(lon) ? `${lat.toFixed(5)}, ${lon.toFixed(5)}` : '—';
 const fmtTs = iso => { const d = new Date(iso); return d.toLocaleDateString(undefined,{day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}); };
 const slug = s => (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
@@ -1055,7 +1070,41 @@ const kvGet = k => tx('kv','readonly', s => s.get(k));
 const kvDel = k => tx('kv','readwrite', s => s.delete(k));
 
 /* Older records had one check and one photo; bring them into the current shape. */
+/* Every record passes through here: from this phone's storage, from imported ZIPs and from the cloud copy.
+   Values that end up in markup or file names are reduced to known-safe forms. */
+const RESULTS = ['ok','nok','na'], SEVS = ['low','med','high'], LOCSRC = ['gps','photo','manual'];
+const ID_RE = /^[A-Za-z0-9_~-]{1,64}$/;
+const THUMB_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/;
+const str = (v, max) => (typeof v === 'string' ? v : (v == null ? '' : String(v))).slice(0, max);
+const num = v => { const n = typeof v === 'number' ? v : parseFloat(v); return Number.isFinite(n) ? n : null; };
+const cleanId = v => { v = str(v, 64); return ID_RE.test(v) ? v : ''; };
+const validTs = v => typeof v === 'string' && v.length <= 40 && !isNaN(Date.parse(v)) ? v : null;
+function sanitizeRecord(r){
+  r.id = cleanId(r.id) || uid();
+  r.inspId = cleanId(r.inspId);
+  r.subject = str(r.subject, 80);
+  r.checks = (Array.isArray(r.checks) ? r.checks : []).map(c => str(c, 200)).filter(Boolean).slice(0, 50);
+  r.result = RESULTS.includes(r.result) ? r.result : '';
+  r.severity = r.result === 'nok' && SEVS.includes(r.severity) ? r.severity : '';
+  r.objectId = str(r.objectId, 80); r.note = str(r.note, 10000); r.site = str(r.site, 200);
+  r.ts = validTs(r.ts);
+  let lat = num(r.lat), lon = num(r.lon);
+  if(lat == null || lon == null || Math.abs(lat) > 90 || Math.abs(lon) > 180){ lat = null; lon = null; }
+  r.lat = lat; r.lon = lon;
+  const acc = num(r.acc); r.acc = lat != null && acc != null && acc >= 0 && acc < 1e6 ? Math.round(acc) : null;
+  r.locSource = lat != null && LOCSRC.includes(r.locSource) ? r.locSource : '';
+  r.synced = !!r.synced;
+  r.photos = (Array.isArray(r.photos) ? r.photos : []).slice(0, 30).map((p, i) => {
+    p = p && typeof p === 'object' ? p : {};
+    return { id: cleanId(p.id) || ('p' + i), blob: typeof Blob !== 'undefined' && p.blob instanceof Blob ? p.blob : null,
+      thumb: typeof p.thumb === 'string' && p.thumb.length < 600000 && THUMB_RE.test(p.thumb) ? p.thumb : null,
+      asset: typeof p.asset === 'string' && /^[0-9a-f]{32}$/.test(p.asset) ? p.asset : null,
+      rot: [0,90,180,270].includes(p.rot) ? p.rot : 0, saved: !!p.saved, busy: !!p.busy };
+  });
+  return r;
+}
 function migrate(r){
+  r = r && typeof r === 'object' ? r : {};
   if(!Array.isArray(r.checks)) r.checks = r.check ? [r.check] : [];
   if(!Array.isArray(r.photos)){
     r.photos = (r.blob || r.thumb || r.photo) ? [{ id:'p0', blob:r.blob||null, thumb:r.thumb||null, asset:r.photo||null, saved:!!r.savedToDevice }] : [];
@@ -1064,7 +1113,7 @@ function migrate(r){
   if(!r.result) r.result = '';
   if(r.objectId == null) r.objectId = '';
   if(r.severity == null) r.severity = '';
-  return r;
+  return sanitizeRecord(r);
 }
 
 /* ---------- Photo processing ---------- */
@@ -1187,7 +1236,7 @@ function renderResume(){
   if(!el.resume.hidden) el.resumeSubject.textContent = draft.subject + (draft.checks.length ? ' · ' + draft.checks.length + ' item' + (draft.checks.length>1?'s':'') : '');
 }
 function renderSubjects(){
-  renderResume();
+  renderResume(); if(typeof renderBackup === 'function' && el.backupNote) renderBackup();
   const counts = {};
   for(const r of records.values()){ const c = counts[r.subject] || (counts[r.subject] = {ok:0,nok:0,na:0}); if(c[r.result] != null) c[r.result]++; }
   el.subjects.innerHTML = '';
@@ -1557,6 +1606,8 @@ el.save.addEventListener('click', async () => {
   const r = { ...draft, inspId: draft.inspId || insp.id, note: el.note.value.trim(), objectId: el.objectId.value.trim(), site: draft.site || insp.site || '', ts: draft.ts || new Date().toISOString(), synced:false };
   putRec(r);
   try{ await dbPut(r); }catch(e){ toast('Saved in memory only; local storage is unavailable'); }
+  markChanged(r.inspId);
+  if(storageProtected !== true) requestPersist();
   draft = null; kvDel('draft').catch(()=>{});
   renderSubjects(); showView('subjects');
   toast(`Saved: ${r.subject} · ${r.checks.length} item${r.checks.length>1?'s':''} · ${RESULT_LABEL[r.result]}`);
@@ -1572,14 +1623,15 @@ function renderLog(){
   el.records.innerHTML = '';
   if(!list.length){ el.records.innerHTML = '<div class="empty-state">No records yet. Go to Inspect and tap a subject.</div>'; return; }
   for(const r of list){
-    const d = document.createElement('div'); d.className = 'rec ' + r.result;
+    const rc = RESULTS.includes(r.result) ? r.result : '', sv = SEVS.includes(r.severity) ? r.severity : '';
+    const d = document.createElement('div'); d.className = 'rec ' + rc;
     const p0 = r.photos[0]; const src = p0 ? (p0.thumb || (p0.asset ? '/_blob/' + p0.asset : null)) : null;
-    d.innerHTML = `<div class="im">${src ? `<img alt="">` : `<div class="noimg">no photo</div>`}${r.photos.length > 1 ? `<span class="cnt">${r.photos.length}</span>` : ''}</div>
+    d.innerHTML = `<div class="im">${src ? `<img alt="">` : `<div class="noimg">no photo</div>`}${r.photos.length > 1 ? `<span class="cnt">${Number(r.photos.length)}</span>` : ''}</div>
       <div class="b">
-        <div class="l1"><span class="subject"></span><span>${r.severity ? `<span class="pill sev-${r.severity}">${SEV_LABEL[r.severity]}</span> ` : ''}<span class="pill ${r.result}">${RESULT_LABEL[r.result] || ''}</span></span></div>
+        <div class="l1"><span class="subject"></span><span>${sv ? `<span class="pill sev-${sv}">${SEV_LABEL[sv]}</span> ` : ''}${rc ? `<span class="pill ${rc}">${RESULT_LABEL[rc]}</span>` : ''}</span></div>
         <div class="check"></div>
         <div class="note" ${r.note ? '' : 'hidden'}></div>
-        <div class="m"><span>${fmtTs(r.ts)}</span><span>${r.lat != null ? fmtCoord(r.lat, r.lon) : 'no location'}</span></div>
+        <div class="m"><span>${fmtTs(r.ts)}</span><span>${Number.isFinite(r.lat) && Number.isFinite(r.lon) ? fmtCoord(r.lat, r.lon) : 'no location'}</span></div>
         <div class="acts"><button class="edit" type="button">Edit</button><button class="del" type="button">Delete</button></div>
       </div>`;
     if(src) d.querySelector('img').src = src;
@@ -1590,7 +1642,7 @@ function renderLog(){
     const del = d.querySelector('.del');
     del.addEventListener('click', async () => {
       if(!del.classList.contains('confirm')){ del.classList.add('confirm'); del.textContent = 'Tap again to delete'; setTimeout(() => { del.classList.remove('confirm'); del.textContent = 'Delete'; }, 3000); return; }
-      await deleteRecord(r); renderLog(); renderSubjects();
+      await deleteRecord(r); markChanged(); renderLog(); renderSubjects();
     });
     el.records.appendChild(d);
   }
@@ -1655,7 +1707,7 @@ async function initCaps(){ setSyncUI(); }
 
 /* ---------- Export ---------- */
 function csvCell(v){ v = v == null ? '' : String(v); return /[",;\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; }
-function photoName(r, i){ const d = new Date(r.ts); const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}_${slug(r.subject)}${r.objectId ? '_' + slug(r.objectId) : ''}_${r.id}_${i+1}.jpg`; }
+function photoName(r, i){ const d = new Date(r.ts); const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}_${slug(r.subject)}${r.objectId ? '_' + slug(r.objectId) : ''}_${String(r.id).replace(/[^A-Za-z0-9_~-]/g, '')}_${i+1}.jpg`; }
 function buildCsv(list){
   const head = ['record_id','timestamp','site','subject','object_id','item','result','severity','note','latitude','longitude','accuracy_m','location_source','photo_files'];
   const rows = [];
@@ -1714,6 +1766,7 @@ el.exportZip.addEventListener('click', async () => {
     for(const r of list) for(let i = 0; i < r.photos.length; i++){ const bytes = await photoBytes(r.photos[i]); if(bytes) ph.file(photoName(r, i), bytes); }
     const blob = await zip.generateAsync({ type:'blob', compression:'STORE' });
     await saveFile(exportName('zip'), blob);
+    markExported();
   }catch(e){ toast('Export failed'); }
   el.exportZip.disabled = false; label.textContent = 'Export ZIP';
 });
@@ -1721,9 +1774,9 @@ el.exportZip.addEventListener('click', async () => {
 /* ---------- Import ZIP into the log ---------- */
 let rpUrls = [];
 function normalizeImported(d){
-  const r = migrate({ ...d });
-  r.synced = false; r.site = r.site || '';
-  r.photos = (r.photos || []).map((p,i) => ({ id:p.id || ('p'+i), blob:null, thumb:p.thumb || null, asset:p.asset || null, rot:p.rot || 0, saved:false }));
+  const r = migrate({ ...(d && typeof d === 'object' ? d : {}) });
+  r.synced = false; if(!r.ts) r.ts = new Date().toISOString();
+  r.photos = r.photos.map(p => ({ ...p, blob:null, saved:false, busy:false }));
   return r;
 }
 async function importZip(file){
@@ -1732,11 +1785,12 @@ async function importZip(file){
   if(!jf) throw new Error(file.name + ' has no records.json; is it an export from this app?');
   const list = JSON.parse(await jf.async('string'));
   if(!Array.isArray(list)) throw new Error(file.name + ': records.json is not a list');
+  if(list.length > 5000) throw new Error(file.name + ' holds more than 5000 records; split it up first.');
   const names = Object.keys(zip.files).filter(n => /\.jpe?g$/i.test(n) && !zip.files[n].dir);
   const blobOf = async n => new Blob([await zip.file(n).async('arraybuffer')], { type:'image/jpeg' });
   const recs = [];
   for(const d of list){
-    if(!d || !d.id || !d.subject) continue;
+    if(!d || typeof d !== 'object' || !cleanId(d.id) || typeof d.subject !== 'string') continue;
     const r = normalizeImported(d);
     for(let i = 0; i < r.photos.length; i++){
       let n = names.find(x => x.endsWith(`_${r.id}_${i+1}.jpg`));
@@ -1747,7 +1801,7 @@ async function importZip(file){
   }
   let meta = null;
   const mf = zip.file(/(^|\/)inspection\.json$/)[0];
-  if(mf){ try{ const m = JSON.parse(await mf.async('string')); if(m && typeof m === 'object') meta = { site:m.site||'', subject:m.subject||'', inspectors:m.inspectors||'', startedAt:m.startedAt||'' }; }catch(e){} }
+  if(mf){ try{ const m = JSON.parse(await mf.async('string')); if(m && typeof m === 'object') meta = { id:cleanId(m.id), site:str(m.site,200), subject:str(m.subject,200), inspectors:str(m.inspectors,200), startedAt:validTs(m.startedAt)||'' }; }catch(e){} }
   if(!meta && recs.length) meta = inspFromRecords(recs);
   return { records:recs, meta };
 }
@@ -1768,6 +1822,7 @@ async function mergeIntoLog(recs, target){
     });
     if(changed){ try{ await dbPut(old); }catch(e){} updated++; } else same++;
   }
+  if(added || updated) markChanged(target);
   return { added, updated, same };
 }
 el.zipPick.addEventListener('click', () => { el.zipIn.value = ''; el.zipIn.click(); });
@@ -1816,6 +1871,7 @@ async function flushRotate(){
     for(const p of r.photos){ if(p.blob && p.rot){ try{ await photoRotate(p); p.asset = null; p.saved = false; }catch(e){} } }
     r.synced = false; try{ await dbPut(r); }catch(e){}
   }
+  if(list.length) markChanged();
   if(list.length){ syncPending(); if(!el.viewExport.hidden && !rotQueue.size) renderExportPhotos(sortedRecords()); }
 }
 function renderExport(){
@@ -1833,7 +1889,7 @@ function renderExport(){
   renderExportPhotos(list);
   el.rpSite.value = insp.site || ''; el.rpTitle.value = insp.subject || ''; el.rpInspector.value = insp.inspectors || '';
 }
-function openExport(){ renderExport(); showView('export'); }
+function openExport(){ renderExport(); renderBackup(); showView('export'); }
 el.tabExport.addEventListener('click', openExport);
 el.clearLog.addEventListener('click', async () => {
   if(!records.size){ toast('The log is already empty'); return; }
@@ -1843,7 +1899,7 @@ el.clearLog.addEventListener('click', async () => {
   }
   el.clearLog.classList.remove('confirm'); el.clearLog.textContent = 'Clear log';
   for(const r of [...records.values()]) await deleteRecord(r, true);
-  renderSubjects(); renderLog(); toast('Log cleared');
+  markChanged(); renderSubjects(); renderLog(); toast('Log cleared');
 });
 
 /* PDF */
@@ -2015,6 +2071,40 @@ el.makePdf.addEventListener('click', async () => {
   el.makePdf.disabled = false; el.makePdf.textContent = label;
 });
 
+/* ---------- Keeping data: storage persistence, iPhone, backups ---------- */
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const IS_HOMESCREEN = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+let storageProtected = null;
+async function requestPersist(){
+  try{ if(navigator.storage && navigator.storage.persist){ storageProtected = (await navigator.storage.persisted()) || (await navigator.storage.persist()); } }catch(e){}
+  renderBackup();
+}
+function markChanged(id){
+  const now = new Date().toISOString(); id = id || insp.id;
+  const x = inspections.find(y => y.id === id); if(x) x.changedAt = now;
+  if(inspActive && insp.id === id) insp.changedAt = now;
+  persistInspections(); renderBackup();
+}
+function markExported(id){
+  const now = new Date().toISOString(); id = id || insp.id;
+  const x = inspections.find(y => y.id === id); if(x) x.exportedAt = now;
+  if(inspActive && insp.id === id) insp.exportedAt = now;
+  persistInspections(); renderBackup();
+}
+const needsBackup = x => !!(x && x.changedAt && (!x.exportedAt || x.changedAt > x.exportedAt));
+function renderBackup(){
+  if(!el.backupNote) return;
+  const pending = inspActive && records.size > 0 && needsBackup(insp);
+  const since = insp.exportedAt || insp.startedAt;
+  const old = since && Date.now() - Date.parse(since) > 24 * 3600 * 1000;
+  el.backupNote.hidden = !(pending && (old || (IS_IOS && !IS_HOMESCREEN)));
+  if(!el.backupNote.hidden) el.backupText.textContent = (insp.exportedAt ? 'Last backup ' + fmtDT(insp.exportedAt) + '. ' : 'Not backed up yet. ') + 'Export a ZIP so a reset or lost phone does not lose this inspection.';
+  const store = storageProtected === true ? 'Storage on this phone is protected from automatic clean-up.' : (IS_IOS && !IS_HOMESCREEN ? 'Safari may delete this data after 7 days without a visit; add the app to your Home Screen.' : 'The browser may clear this data when the phone runs low on space.');
+  el.backupInfo.textContent = (insp.exportedAt ? 'Last ZIP export: ' + fmtDT(insp.exportedAt) + (needsBackup(insp) ? ' (changes since then).' : '.') : 'Not exported yet.') + ' ' + store;
+  el.iosNote.hidden = !(IS_IOS && !IS_HOMESCREEN);
+}
+el.backupGo.addEventListener('click', () => el.exportZip.click());
+
 /* ---------- About ---------- */
 document.querySelectorAll('[data-variant]').forEach(n => { n.hidden = n.dataset.variant !== (STANDALONE ? 'web' : 'claude'); });
 let aboutFrom = 'start';
@@ -2055,7 +2145,7 @@ function inspFromRecords(list){
   const ts = list.map(r => r.ts).filter(Boolean).sort();
   return { site: top ? top[0] : legacy, subject:'', inspectors:'', startedAt: ts[0] || new Date().toISOString() };
 }
-function cleanMeta(m, id){ return { id: id || m.id || uid(), site:(m.site||'').trim(), subject:(m.subject||'').trim(), inspectors:(m.inspectors||'').trim(), startedAt: m.startedAt || new Date().toISOString() }; }
+function cleanMeta(m, id){ return { id: cleanId(id) || cleanId(m.id) || uid(), site:str(m.site,200).trim(), subject:str(m.subject,200).trim(), inspectors:str(m.inspectors,200).trim(), startedAt: validTs(m.startedAt) || new Date().toISOString(), changedAt: validTs(m.changedAt) || '', exportedAt: validTs(m.exportedAt) || '' }; }
 function createInspection(meta, keepId){
   const id = keepId && meta.id && !inspections.some(x => x.id === meta.id) ? meta.id : uid();
   const x = cleanMeta(meta, id); inspections.push(x); persistInspections(); return x;
@@ -2097,7 +2187,7 @@ function renderInspList(){
     d.innerHTML = `<button type="button" class="open"><b><span class="s"></span>${isOpen ? '<span class="pill">open</span>' : ''}</b><span class="sub"></span><span class="m"></span></button><button type="button" class="del">Delete</button>`;
     d.querySelector('.s').textContent = x.site || 'Unnamed site';
     d.querySelector('.sub').textContent = [x.subject, x.inspectors].filter(Boolean).join('  ·  ') || 'No subject or inspector set';
-    d.querySelector('.m').textContent = [`${st.n} record${st.n === 1 ? '' : 's'}`, 'started ' + fmtDate(x.startedAt), st.last ? 'last ' + fmtDate(st.last) : '', fmtMB(st.bytes)].filter(Boolean).join('  ·  ');
+    d.querySelector('.m').textContent = [`${st.n} record${st.n === 1 ? '' : 's'}`, 'started ' + fmtDate(x.startedAt), st.last ? 'last ' + fmtDate(st.last) : '', fmtMB(st.bytes), st.n && needsBackup(x) ? 'not backed up' : ''].filter(Boolean).join('  ·  ');
     d.querySelector('.open').addEventListener('click', () => openInspection(x.id));
     const del = d.querySelector('.del');
     del.addEventListener('click', async () => {
@@ -2131,6 +2221,7 @@ el.nwGo.addEventListener('click', () => {
   const x = createInspection({ site, subject:el.nwSubject.value, inspectors:el.nwInspectors.value, startedAt:new Date().toISOString() });
   el.nwSite.value = el.nwSubject.value = el.nwInspectors.value = ''; el.nwErr.textContent = '';
   openInspection(x.id); toast('Inspection started: ' + site);
+  requestPersist();
 });
 el.ldGo.addEventListener('click', () => { el.ldIn.value = ''; el.ldIn.click(); });
 /* A ZIP opens as its own inspection, or merges into the matching one already on this phone. */
@@ -2150,11 +2241,14 @@ el.ldIn.addEventListener('change', async () => {
     try{
       const z = await importZip(f);
       let id = matchInspection(z);
-      if(id) merged++; else { id = createInspection(z.meta || inspFromRecords(z.records), true).id; created++; }
+      let fresh = false;
+      if(id) merged++; else { id = createInspection(z.meta || inspFromRecords(z.records), true).id; created++; fresh = true; }
       const res = await mergeIntoLog(z.records, id); n += res.added + res.updated; lastId = id;
+      if(fresh) markExported(id);
     }catch(e){ errs.push((e && e.message) || ('Could not read ' + f.name)); }
   }
   el.ldGo.disabled = false; el.ldGo.textContent = 'Load ZIP…';
+  requestPersist();
   if(!lastId){ el.ldErr.textContent = errs.join(' '); return; }
   openInspection(lastId);
   toast((created && !merged ? 'Opened: ' : 'Added to existing inspection: ') + `${n} record${n === 1 ? '' : 's'}${insp.site ? ' · ' + insp.site : ''}` + (errs.length ? ` (${errs.length} file not readable)` : ''));
@@ -2182,14 +2276,23 @@ el.ldIn.addEventListener('change', async () => {
       persistInspections();
     }
     if(legacy) kvDel('inspection').catch(()=>{});
+    /* Inspections from before backup tracking: treat the newest record as the last change, so unexported data gets flagged. */
+    let touched = false;
+    for(const x of inspections){
+      if(x.changedAt) continue;
+      let last = ''; for(const r of allRecs.values()) if(r.inspId === x.id && (r.ts||'') > last) last = r.ts;
+      if(last){ x.changedAt = last; touched = true; }
+    }
+    if(touched) persistInspections();
     const a = inspections.find(x => x.id === activeId);
     if(a){ insp = { ...a }; inspActive = true; loadActive(); }
     renderSubjects();
     const saved = await kvGet('draft');
     if(saved && saved.subject && CHECKS[saved.subject]){ const d = migrate(saved); if(!d.inspId && inspActive) d.inspId = insp.id; if(!draftIsEmpty(d)){ draft = d; renderResume(); } else kvDel('draft').catch(()=>{}); }
   }catch(e){}
-  renderInspHeader();
+  renderInspHeader(); renderBackup();
   if(inspActive) showView('subjects'); else openStart();
+  if(inspections.length) requestPersist();
   initCaps();
 })();
 })();
