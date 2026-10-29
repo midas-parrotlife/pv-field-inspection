@@ -60,6 +60,20 @@ button{cursor:pointer}
 .warn .linkbtn{color:var(--nok);font-size:14px;font-weight:600}
 .btn.danger{background:var(--nok);color:#fff}
 .backlink{margin:0 0 12px}
+.ilist{display:grid;gap:8px;margin-bottom:14px}
+.iitem{display:flex;align-items:stretch;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.iitem.active{border-color:var(--accent);box-shadow:inset 4px 0 0 var(--accent)}
+.iitem .open{flex:1;min-width:0;text-align:left;background:none;border:0;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.iitem .open b{font-family:var(--display);font-weight:600;font-size:19px;line-height:1.15;display:flex;gap:8px;align-items:center}
+.iitem .open b .pill{font-family:var(--body);font-size:11px;background:var(--accent);color:var(--accent-ink)}
+.iitem .open span{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iitem .open b .s{font-size:inherit;color:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iitem .open .m{font-variant-numeric:tabular-nums;white-space:normal}
+.iitem .del{background:none;border:0;border-left:1px solid var(--line);color:var(--muted);font-size:13px;padding:0 12px;text-decoration:underline}
+.iitem .del.confirm{color:#fff;background:var(--nok);text-decoration:none;font-weight:600;max-width:110px}
+.drop.slim{padding:12px 14px;margin-bottom:4px}
+.drop.slim b{font-size:17px}
+#viewLog .logbar{margin-top:12px}
 .tabs{display:flex;gap:4px;margin-top:10px}
 .tabs button{flex:1;background:none;border:0;border-bottom:3px solid transparent;padding:10px 4px;font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
 .tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
@@ -258,10 +272,9 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
   <section id="viewStart" hidden>
     <p class="backlink" id="startBackRow" hidden><button type="button" class="linkbtn" id="startBack">← Back to the current inspection</button></p>
 
-    <div class="stcard cont" id="contCard" hidden>
-      <h2>Continue inspection</h2>
-      <div class="info"><b id="contSite"></b><span id="contInfo"></span></div>
-      <button class="btn primary wide" id="contGo" type="button">Continue</button>
+    <div id="inspListWrap" hidden>
+      <h3 class="sec">Your inspections</h3>
+      <div class="ilist" id="inspList"></div>
     </div>
 
     <div class="stcard">
@@ -269,15 +282,13 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
       <div class="field"><label for="nwSite">Site name</label><input id="nwSite" placeholder="e.g. Parc Solaire Nord" autocomplete="off"></div>
       <div class="field"><label for="nwSubject">Inspection subject</label><input id="nwSubject" placeholder="e.g. Annual O&amp;M inspection 2026" autocomplete="off"></div>
       <div class="field"><label for="nwInspectors">Inspector(s)</label><input id="nwInspectors" placeholder="Name(s)" autocomplete="off"></div>
-      <div class="warn" id="nwWarn" hidden><span id="nwWarnText"></span> <button type="button" class="linkbtn" id="nwExport">Export ZIP first</button></div>
       <div class="err" id="nwErr"></div>
       <button class="btn primary wide" id="nwGo" type="button">Start inspection</button>
     </div>
 
     <div class="stcard">
       <h2>Continue from a ZIP</h2>
-      <p>Load an inspection exported from this app, for example from another phone.</p>
-      <div class="warn" id="ldWarn" hidden></div>
+      <p>Open an inspection exported from this app, for example from another phone. If it is already on this phone, the ZIP is added to it.</p>
       <button class="btn ghost wide" id="ldGo" type="button">Load ZIP…</button>
       <input type="file" id="ldIn" accept=".zip,application/zip" multiple hidden>
       <div class="err" id="ldErr"></div>
@@ -396,12 +407,18 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
   </section>
 
   <section id="viewLog" hidden>
-    <div class="logbar">
-      <span class="summary" id="logSummary"></span>
-      <span class="spacer"></span>
-      <button class="linkbtn" id="logToExport" type="button">Import / export →</button>
-    </div>
+    <button class="drop slim" id="zipPick" type="button">
+      <b>+ Import ZIP</b>
+      <span>Adds records from another phone to this inspection. Records already in the log are skipped and missing photos are filled in.</span>
+    </button>
+    <input type="file" id="zipIn" accept=".zip,application/zip" multiple hidden>
+    <div class="msg" id="impMsg" hidden></div>
+    <div class="logbar"><span class="summary" id="logSummary"></span></div>
     <div id="records"></div>
+    <div class="danger">
+      <button class="linkbtn" id="clearLog" type="button">Clear log</button>
+      <span class="summary">Removes all records and photos of this inspection from this phone. Export a ZIP first.</span>
+    </div>
   </section>
 
   <section id="viewExport" hidden>
@@ -413,19 +430,11 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
     </div>
     <div id="rsBySubject" class="bysub"></div>
 
-    <h3 class="sec">Import</h3>
-    <button class="drop" id="zipPick" type="button">
-      <b>+ Import ZIP</b>
-      <span>Adds the records to your log. Records already in the log are skipped and missing photos are filled in. You can pick several ZIPs at once.</span>
-    </button>
-    <input type="file" id="zipIn" accept=".zip,application/zip" multiple hidden>
-    <div class="msg" id="impMsg" hidden></div>
-
     <h3 class="sec">Export</h3>
     <div class="exgrid">
       <button class="excard" id="savePhotos" type="button"><b>Save photos</b><span>To your gallery</span></button>
       <button class="excard" id="exportCsv" type="button"><b>Save CSV</b><span>Table for Excel</span></button>
-      <button class="excard main" id="exportZip" type="button"><b>Export ZIP</b><span>Full log: CSV, JSON and all photos. Import it on another phone or keep it as backup.</span></button>
+      <button class="excard main" id="exportZip" type="button"><b>Export ZIP</b><span>This inspection: CSV, JSON and all photos. Open it on another phone or keep it as backup.</span></button>
     </div>
 
     <h3 class="sec">PDF report</h3>
@@ -441,11 +450,6 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
       <p class="hint">Tap ↻ on a photo that is on its side. The change is saved in the log.</p>
       <div class="rpgrid" id="rpPhotos"></div>
     </details>
-
-    <div class="danger">
-      <button class="linkbtn" id="clearLog" type="button">Clear log</button>
-      <span class="summary">Removes all records and photos from this phone. Export a ZIP first.</span>
-    </div>
   </section>
 </main>
 
@@ -941,16 +945,17 @@ const SEV_BTN = [['sevLow','low'],['sevMed','med'],['sevHigh','high']];
 /* ---------- DOM ---------- */
 const $ = id => document.getElementById(id);
 $('nojs').remove();
-const ids = ['inspRow','hdrSite','hdrSub','hdrChange','viewStart','startBackRow','startBack','contCard','contSite','contInfo','contGo','nwSite','nwSubject','nwInspectors','nwWarn','nwWarnText','nwExport','nwErr','nwGo','ldWarn','ldGo','ldIn','ldErr','sync','syncText','camMode','tabInspect','tabLog','logCount','viewSubjects','viewPick','viewForm','viewLog','subjects',
+const ids = ['inspRow','hdrSite','hdrSub','hdrChange','viewStart','startBackRow','startBack','inspListWrap','inspList','nwSite','nwSubject','nwInspectors','nwErr','nwGo','ldGo','ldIn','ldErr','sync','syncText','camMode','tabInspect','tabLog','logCount','viewSubjects','viewPick','viewForm','viewLog','subjects',
   'resume','resumeSubject','resumeGo','resumeDrop','pickBack','pickSubject','pickChecks','pickNoPhoto','pickPhoto',
   'back','formTitle','fSubject','fChecks','fPhotos','locText','locSrc','locRetry','locEdit','locEditor','latIn','lonIn',
-  'objectId','objectIds','resOk','resNok','resNa','sevField','sevLow','sevMed','sevHigh','note','formErr','cancel','save','logSummary','logToExport','savePhotos','exportCsv','exportZip','records',
+  'objectId','objectIds','resOk','resNok','resNa','sevField','sevLow','sevMed','sevHigh','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
   'tabExport','viewExport','zipPick','zipIn','impMsg','rpPhotosBox','rpPhotosCount','clearLog','rsum','rsRecords','rsItems','rsNok','rsPhotos','rsBySubject','rpPhotos','rpSite','rpInspector','rpTitle','makePdf','rpErr',
   'cam','camView','camVideo','camSubject','camItems','camSkip','camClose','camMsg','camNative','camShot','camTorch','camFlip','camStage','camFlash','camZoom','camBrightBtn','camBrightRow','camBright','toast'];
 const el = {}; for(const id of ids) el[id] = $(id);
 
 /* ---------- State ---------- */
-let records = new Map();
+let allRecs = new Map();   // every record on this phone, all inspections
+let records = new Map();   // records of the open inspection
 let draft = null;
 let lastLoc = null;
 const caps = { db:null, assets:null, downloads:null };
@@ -1116,7 +1121,7 @@ function showView(name){
 }
 function draftIsEmpty(d){ return !d || (!(d.photos && d.photos.length) && !(d.checks && d.checks.length) && !d.result && !d.severity && !(d.note||'').trim() && !(d.objectId||'').trim()); }
 function renderResume(){
-  el.resume.hidden = draftIsEmpty(draft);
+  el.resume.hidden = draftIsEmpty(draft) || !!(draft.inspId && draft.inspId !== insp.id);
   if(!el.resume.hidden) el.resumeSubject.textContent = draft.subject + (draft.checks.length ? ' · ' + draft.checks.length + ' item' + (draft.checks.length>1?'s':'') : '');
 }
 function renderSubjects(){
@@ -1155,7 +1160,7 @@ function renderCheckList(container, subject, selected, onChange){
 
 /* ---------- Start: subject → items → photo ---------- */
 function newDraft(subject){
-  return { id:uid(), subject, checks:[], objectId:'', result:'', severity:'', note:'', lat:null, lon:null, acc:null, locSource:'', photos:[], ts:null };
+  return { id:uid(), inspId:insp.id, subject, checks:[], objectId:'', result:'', severity:'', note:'', lat:null, lon:null, acc:null, locSource:'', photos:[], ts:null };
 }
 function tapSubject(subject){
   if(draft && !draftIsEmpty(draft)){
@@ -1487,8 +1492,8 @@ el.save.addEventListener('click', async () => {
   if(missing.length){ el.formErr.textContent = 'Select ' + missing.join(' and ') + ' before saving.'; return; }
   if(draft.photos.some(p => p.busy)){ el.formErr.textContent = 'A photo is still being processed; wait a moment.'; return; }
   for(const p of draft.photos){ try{ await photoRotate(p); }catch(e){} }
-  const r = { ...draft, note: el.note.value.trim(), objectId: el.objectId.value.trim(), site: draft.site || insp.site || '', ts: draft.ts || new Date().toISOString(), synced:false };
-  records.set(r.id, r);
+  const r = { ...draft, inspId: draft.inspId || insp.id, note: el.note.value.trim(), objectId: el.objectId.value.trim(), site: draft.site || insp.site || '', ts: draft.ts || new Date().toISOString(), synced:false };
+  putRec(r);
   try{ await dbPut(r); }catch(e){ toast('Saved in memory only; local storage is unavailable'); }
   draft = null; kvDel('draft').catch(()=>{});
   renderSubjects(); showView('subjects');
@@ -1516,7 +1521,7 @@ function renderLog(){
         <div class="acts"><button class="edit" type="button">Edit</button><button class="del" type="button">Delete</button></div>
       </div>`;
     if(src) d.querySelector('img').src = src;
-    d.querySelector('.subject').textContent = r.subject + (r.site ? ' · ' + r.site : '');
+    d.querySelector('.subject').textContent = r.subject + (r.site && r.site !== insp.site ? ' · ' + r.site : '');
     d.querySelector('.check').textContent = (r.objectId ? r.objectId + ' — ' : '') + r.checks.join(', ');
     if(r.note) d.querySelector('.note').textContent = r.note;
     d.querySelector('.edit').addEventListener('click', () => editRecord(r));
@@ -1535,7 +1540,7 @@ function editRecord(r){
   openForm();
 }
 async function deleteRecord(r, quiet){
-  records.delete(r.id);
+  dropRec(r.id);
   try{ await dbDel(r.id); }catch(e){}
   try{ if(caps.db) await caps.db.doc('inspections/' + r.id).delete(); }catch(e){}
   for(const p of r.photos){ try{ if(caps.assets && p.asset) await caps.assets.delete(p.asset); }catch(e){} }
@@ -1551,7 +1556,7 @@ function setSyncUI(){
   el.sync.className = 'sync on'; el.syncText.textContent = 'synced';
 }
 function toDoc(r){
-  return { id:r.id, ts:r.ts, site:r.site||'', subject:r.subject, objectId:r.objectId||'', checks:r.checks, result:r.result, severity:r.severity||'', note:r.note||'', lat:r.lat, lon:r.lon, acc:r.acc, locSource:r.locSource||'',
+  return { id:r.id, inspId:r.inspId||'', ts:r.ts, site:r.site||'', subject:r.subject, objectId:r.objectId||'', checks:r.checks, result:r.result, severity:r.severity||'', note:r.note||'', lat:r.lat, lon:r.lon, acc:r.acc, locSource:r.locSource||'',
     photos: r.photos.map((p,i) => ({ id:p.id, asset:p.asset||null, rot:p.rot||0, thumb: i === 0 && p.thumb && p.thumb.startsWith('data:') ? p.thumb : null })) };
 }
 async function syncPending(){
@@ -1575,10 +1580,11 @@ async function mergeRemote(){
     const snap = await caps.db.collection('inspections').limit(1000).get();
     let added = 0;
     for(const doc of snap.docs){
-      const d = doc.data(); if(!d || records.has(doc.id)) continue;
+      const d = doc.data(); if(!d || allRecs.has(doc.id)) continue;
       const r = migrate({ ...d, id:doc.id, synced:true });
+      r.inspId = d.inspId || insp.id || ''; if(!r.inspId || !inspections.some(x => x.id === r.inspId)) r.inspId = ensureInspection(r.inspId, [r]).id;
       r.photos = r.photos.map(p => ({ id:p.id || uid(), asset:p.asset||null, rot:p.rot||0, blob:null, thumb: p.thumb || (p.asset ? '/_blob/' + p.asset : null), saved:false }));
-      records.set(r.id, r); try{ await dbPut(r); }catch(e){} added++;
+      putRec(r); try{ await dbPut(r); }catch(e){} added++;
     }
     if(added){ renderSubjects(); if(!el.viewLog.hidden) renderLog(); }
   }catch(e){}
@@ -1612,7 +1618,7 @@ const exportName = ext => `inspection_${slug(insp.site) || 'site'}_${new Date().
 el.savePhotos.addEventListener('click', async () => {
   const items = [];
   for(const r of sortedRecords()) r.photos.forEach((p,i) => { if(p.blob && !p.saved) items.push({ r, p, name: photoName(r, i) }); });
-  if(!items.length){ toast(records.size ? 'All photos are already saved to this phone' : 'No photos in the log yet'); return; }
+  if(!items.length){ toast(records.size ? 'All photos are already saved to this phone' : 'No photos in this inspection yet'); return; }
   const files = []; for(const x of items){ const b = await photoBytes(x.p); if(b) files.push(new File([b], x.name, { type:'image/jpeg' })); }
   let done = false;
   try{
@@ -1684,11 +1690,14 @@ async function importZip(file){
   return { records:recs, meta };
 }
 /* Add imported records to the log; existing records keep their data, but missing photos are filled in. */
-async function mergeIntoLog(recs){
+async function mergeIntoLog(recs, target){
+  target = target || insp.id;
   let added = 0, updated = 0, same = 0;
   for(const r of recs){
-    const old = records.get(r.id);
-    if(!old){ records.set(r.id, r); try{ await dbPut(r); }catch(e){} added++; continue; }
+    let old = allRecs.get(r.id);
+    if(old && old.inspId !== target){ r.id = r.id + '~' + target.slice(-5); old = allRecs.get(r.id); }   // same record already in another inspection: keep both
+    r.inspId = target;
+    if(!old){ putRec(r); try{ await dbPut(r); }catch(e){} added++; continue; }
     let changed = false;
     r.photos.forEach((p,i) => {
       const o = old.photos[i];
@@ -1714,7 +1723,7 @@ el.zipIn.addEventListener('change', async () => {
   if(tot.updated) parts.push(`${tot.updated} completed with missing photos`);
   if(tot.same) parts.push(`${tot.same} already in the log`);
   showMsg((files.length > 1 ? `${files.length} ZIPs: ` : '') + parts.join(', ') + '.' + (errs.length ? ' ' + errs.join(' ') : ''), errs.length && !tot.added && !tot.updated);
-  renderSubjects(); renderExport(); syncPending();
+  renderSubjects(); renderLog(); syncPending();
 });
 function showMsg(t, bad){ el.impMsg.hidden = false; el.impMsg.textContent = t; el.impMsg.classList.toggle('bad', !!bad); }
 
@@ -1758,13 +1767,12 @@ function renderExport(){
   el.rsPhotos.textContent = list.reduce((n,r) => n + r.photos.filter(p => p.blob || p.asset).length, 0);
   const by = {};
   for(const r of list){ const c = by[r.subject] || (by[r.subject] = { n:0, nok:0 }); c.n++; if(r.result === 'nok') c.nok++; }
-  el.rsBySubject.innerHTML = has ? SUBJECTS.filter(s => by[s]).map(s => `<span><b>${esc(s)}</b> ${by[s].n}${by[s].nok ? ` (${by[s].nok} NOK)` : ''}</span>`).join('') : '<span>The log is empty. Inspect a site or import a ZIP to get started.</span>';
+  el.rsBySubject.innerHTML = has ? SUBJECTS.filter(s => by[s]).map(s => `<span><b>${esc(s)}</b> ${by[s].n}${by[s].nok ? ` (${by[s].nok} NOK)` : ''}</span>`).join('') : '<span>No records yet. Inspect the site, or import a ZIP on the Log tab.</span>';
   renderExportPhotos(list);
   el.rpSite.value = insp.site || ''; el.rpTitle.value = insp.subject || ''; el.rpInspector.value = insp.inspectors || '';
 }
-function openExport(){ el.impMsg.hidden = true; renderExport(); showView('export'); }
+function openExport(){ renderExport(); showView('export'); }
 el.tabExport.addEventListener('click', openExport);
-el.logToExport.addEventListener('click', openExport);
 el.clearLog.addEventListener('click', async () => {
   if(!records.size){ toast('The log is already empty'); return; }
   if(!el.clearLog.classList.contains('confirm')){
@@ -1773,7 +1781,7 @@ el.clearLog.addEventListener('click', async () => {
   }
   el.clearLog.classList.remove('confirm'); el.clearLog.textContent = 'Clear log';
   for(const r of [...records.values()]) await deleteRecord(r, true);
-  renderSubjects(); renderExport(); toast('Log cleared');
+  renderSubjects(); renderLog(); toast('Log cleared');
 });
 
 /* PDF */
@@ -1950,12 +1958,21 @@ function renderCamMode(){ const inpage = camPref() === 'inpage' && !!(navigator.
 el.camMode.addEventListener('click', () => { setCamPref(camPref() === 'inpage' ? 'native' : 'inpage'); renderCamMode(); toast(camPref() === 'inpage' ? 'Photos are taken inside the app' : 'Photos are taken with the phone camera app'); });
 renderCamMode();
 el.tabInspect.addEventListener('click', () => { if(!inspActive){ openStart(); return; } renderResume(); showView('subjects'); });
-el.tabLog.addEventListener('click', () => { renderLog(); showView('log'); });
+el.tabLog.addEventListener('click', () => { el.impMsg.hidden = true; renderLog(); showView('log'); });
 
-/* ---------- Inspection (site, subject, inspectors) ---------- */
-let insp = { site:'', subject:'', inspectors:'', startedAt:'' };
+/* ---------- Inspections (site, subject, inspectors) ---------- */
+let inspections = [];   // [{id, site, subject, inspectors, startedAt}]
+let insp = { id:'', site:'', subject:'', inspectors:'', startedAt:'' };
 let inspActive = false;
-function saveInsp(){ kvSet('inspection', { ...insp }).catch(()=>{}); renderInspHeader(); }
+function putRec(r){ allRecs.set(r.id, r); if(inspActive && r.inspId === insp.id) records.set(r.id, r); }
+function dropRec(id){ allRecs.delete(id); records.delete(id); }
+function loadActive(){ records = new Map([...allRecs.values()].filter(r => r.inspId === insp.id).map(r => [r.id, r])); }
+function persistInspections(){ kvSet('inspections', inspections.map(x => ({ ...x }))).catch(()=>{}); kvSet('activeInsp', inspActive ? insp.id : '').catch(()=>{}); }
+function saveInsp(){
+  const i = inspections.findIndex(x => x.id === insp.id);
+  if(i >= 0) inspections[i] = { ...insp }; else if(insp.id) inspections.push({ ...insp });
+  persistInspections(); renderInspHeader();
+}
 function renderInspHeader(){
   el.inspRow.hidden = !inspActive;
   el.hdrSite.textContent = insp.site || 'Unnamed site';
@@ -1969,9 +1986,21 @@ function inspFromRecords(list){
   const ts = list.map(r => r.ts).filter(Boolean).sort();
   return { site: top ? top[0] : legacy, subject:'', inspectors:'', startedAt: ts[0] || new Date().toISOString() };
 }
-function activate(meta){
-  insp = { site:(meta.site||'').trim(), subject:(meta.subject||'').trim(), inspectors:(meta.inspectors||'').trim(), startedAt: meta.startedAt || new Date().toISOString() };
-  inspActive = true; saveInsp(); renderSubjects(); renderResume(); showView('subjects');
+function cleanMeta(m, id){ return { id: id || m.id || uid(), site:(m.site||'').trim(), subject:(m.subject||'').trim(), inspectors:(m.inspectors||'').trim(), startedAt: m.startedAt || new Date().toISOString() }; }
+function createInspection(meta, keepId){
+  const id = keepId && meta.id && !inspections.some(x => x.id === meta.id) ? meta.id : uid();
+  const x = cleanMeta(meta, id); inspections.push(x); persistInspections(); return x;
+}
+function ensureInspection(id, recs){
+  let x = id && inspections.find(y => y.id === id);
+  if(!x){ x = cleanMeta(inspFromRecords(recs), id || uid()); inspections.push(x); persistInspections(); }
+  return x;
+}
+function openInspection(id){
+  const x = inspections.find(y => y.id === id); if(!x) return;
+  insp = { ...x }; inspActive = true; loadActive(); persistInspections();
+  if(draft && draft.inspId && draft.inspId !== insp.id){ draft = null; kvDel('draft').catch(()=>{}); }
+  renderInspHeader(); renderSubjects(); renderResume(); showView('subjects');
 }
 for(const [id, key] of [['rpSite','site'],['rpTitle','subject'],['rpInspector','inspectors']]){
   el[id].addEventListener('input', () => { insp[key] = el[id].value; renderInspHeader(); });
@@ -1979,67 +2008,87 @@ for(const [id, key] of [['rpSite','site'],['rpTitle','subject'],['rpInspector','
 }
 
 /* ---------- Start screen ---------- */
-function openStart(){
-  const n = records.size;
-  el.startBackRow.hidden = !inspActive;
-  el.contCard.hidden = !(inspActive || n);
-  if(!el.contCard.hidden){
-    const meta = inspActive ? insp : inspFromRecords([...records.values()]);
-    el.contSite.textContent = meta.site || 'Unnamed site';
-    const last = sortedRecords().map(r => r.ts).filter(Boolean).pop();
-    el.contInfo.textContent = [meta.subject, meta.inspectors, `${n} record${n === 1 ? '' : 's'}`, last ? 'last ' + fmtDate(last) : ''].filter(Boolean).join('  ·  ');
+function inspStats(id){
+  let n = 0, bytes = 0, last = '';
+  for(const r of allRecs.values()){
+    if(r.inspId !== id) continue;
+    n++; if((r.ts||'') > last) last = r.ts;
+    for(const p of r.photos){ if(p.blob) bytes += p.blob.size || 0; if(p.thumb && String(p.thumb).startsWith('data:')) bytes += p.thumb.length * 0.75; }
   }
-  const warnTxt = n ? `This phone still holds ${n} record${n === 1 ? '' : 's'}${el.contSite.textContent ? ' from ' + el.contSite.textContent : ''}. Starting a new inspection deletes the current log.` : '';
-  el.nwWarn.hidden = !n; el.nwWarnText.textContent = warnTxt;
-  el.ldWarn.hidden = !n; el.ldWarn.textContent = n ? warnTxt.replace('Starting a new inspection deletes the current log.', 'Loading a ZIP replaces the current log.') + ' To add a ZIP to the current inspection instead, use Import ZIP on the Export tab.' : '';
-  armReset(el.nwGo, 'Start inspection'); armReset(el.ldGo, 'Load ZIP…');
+  return { n, bytes, last };
+}
+const fmtMB = b => b < 1e5 ? '< 0.1 MB' : (b / 1048576).toFixed(b < 1e7 ? 1 : 0) + ' MB';
+function renderInspList(){
+  const list = inspections.map(x => ({ x, st: inspStats(x.id) })).sort((a,b) => ((b.st.last || b.x.startedAt) || '').localeCompare((a.st.last || a.x.startedAt) || ''));
+  el.inspListWrap.hidden = !list.length;
+  el.inspList.innerHTML = '';
+  for(const { x, st } of list){
+    const isOpen = inspActive && x.id === insp.id;
+    const d = document.createElement('div'); d.className = 'iitem' + (isOpen ? ' active' : '');
+    d.innerHTML = `<button type="button" class="open"><b><span class="s"></span>${isOpen ? '<span class="pill">open</span>' : ''}</b><span class="sub"></span><span class="m"></span></button><button type="button" class="del">Delete</button>`;
+    d.querySelector('.s').textContent = x.site || 'Unnamed site';
+    d.querySelector('.sub').textContent = [x.subject, x.inspectors].filter(Boolean).join('  ·  ') || 'No subject or inspector set';
+    d.querySelector('.m').textContent = [`${st.n} record${st.n === 1 ? '' : 's'}`, 'started ' + fmtDate(x.startedAt), st.last ? 'last ' + fmtDate(st.last) : '', fmtMB(st.bytes)].filter(Boolean).join('  ·  ');
+    d.querySelector('.open').addEventListener('click', () => openInspection(x.id));
+    const del = d.querySelector('.del');
+    del.addEventListener('click', async () => {
+      if(!del.classList.contains('confirm')){
+        del.classList.add('confirm'); del.textContent = st.n ? `Tap again: delete ${st.n} record${st.n === 1 ? '' : 's'}` : 'Tap again to delete';
+        setTimeout(() => { if(del.isConnected){ del.classList.remove('confirm'); del.textContent = 'Delete'; } }, 4000); return;
+      }
+      await deleteInspection(x.id); toast('Inspection deleted'); renderInspList(); el.startBackRow.hidden = !inspActive;
+    });
+    el.inspList.appendChild(d);
+  }
+}
+async function deleteInspection(id){
+  for(const r of [...allRecs.values()]) if(r.inspId === id) await deleteRecord(r, true);
+  inspections = inspections.filter(x => x.id !== id);
+  if(inspActive && insp.id === id){ inspActive = false; insp = { id:'', site:'', subject:'', inspectors:'', startedAt:'' }; records = new Map(); }
+  if(draft && draft.inspId === id){ draft = null; kvDel('draft').catch(()=>{}); }
+  persistInspections(); renderInspHeader(); renderSubjects();
+}
+function openStart(){
+  el.startBackRow.hidden = !inspActive;
   el.nwErr.textContent = ''; el.ldErr.textContent = '';
-  if(!el.nwSite.value && !inspActive && !n){ try{ el.nwSite.value = localStorage.getItem('pvfi.site') || ''; }catch(e){} }
+  renderInspList();
   showView('start');
 }
-/* Destructive buttons ask for a second tap when the log is not empty. */
-function armReset(btn, label){ btn.dataset.armed = ''; btn.textContent = label; btn.classList.remove('danger'); }
-function needsConfirm(btn, label){
-  if(!records.size || btn.dataset.armed) return false;
-  btn.dataset.armed = '1'; btn.textContent = label; btn.classList.add('danger');
-  setTimeout(() => { if(btn.dataset.armed) armReset(btn, btn === el.nwGo ? 'Start inspection' : 'Load ZIP…'); }, 5000);
-  return true;
-}
-async function clearAll(){
-  for(const r of [...records.values()]) await deleteRecord(r, true);
-  draft = null; kvDel('draft').catch(()=>{});
-}
-el.contGo.addEventListener('click', () => activate(inspActive ? insp : inspFromRecords([...records.values()])));
 el.startBack.addEventListener('click', () => { renderResume(); showView('subjects'); });
 el.hdrChange.addEventListener('click', openStart);
-el.nwExport.addEventListener('click', () => el.exportZip.click());
-el.nwGo.addEventListener('click', async () => {
+el.nwGo.addEventListener('click', () => {
   const site = el.nwSite.value.trim();
   if(!site){ el.nwErr.textContent = 'Enter the site name.'; el.nwSite.focus(); return; }
-  el.nwErr.textContent = '';
-  if(needsConfirm(el.nwGo, `Tap again: delete ${records.size} record${records.size === 1 ? '' : 's'} and start`)) return;
-  await clearAll();
-  activate({ site, subject:el.nwSubject.value, inspectors:el.nwInspectors.value, startedAt:new Date().toISOString() });
-  el.nwSite.value = el.nwSubject.value = el.nwInspectors.value = '';
-  toast('Inspection started: ' + site);
+  const x = createInspection({ site, subject:el.nwSubject.value, inspectors:el.nwInspectors.value, startedAt:new Date().toISOString() });
+  el.nwSite.value = el.nwSubject.value = el.nwInspectors.value = ''; el.nwErr.textContent = '';
+  openInspection(x.id); toast('Inspection started: ' + site);
 });
-el.ldGo.addEventListener('click', () => {
-  if(needsConfirm(el.ldGo, `Tap again: replace ${records.size} record${records.size === 1 ? '' : 's'} with a ZIP`)) return;
-  el.ldIn.value = ''; el.ldIn.click();
-});
+el.ldGo.addEventListener('click', () => { el.ldIn.value = ''; el.ldIn.click(); });
+/* A ZIP opens as its own inspection, or merges into the matching one already on this phone. */
+function matchInspection(z){
+  if(z.meta && z.meta.id && inspections.some(x => x.id === z.meta.id)) return z.meta.id;
+  const counts = {};
+  for(const r of z.records){ const o = allRecs.get(r.id); if(o) counts[o.inspId] = (counts[o.inspId] || 0) + 1; }
+  const best = Object.entries(counts).sort((a,b) => b[1] - a[1])[0];
+  return best && best[1] * 2 >= z.records.length ? best[0] : null;
+}
 el.ldIn.addEventListener('change', async () => {
   const files = [...(el.ldIn.files || [])]; if(!files.length) return;
   if(!window.JSZip){ el.ldErr.textContent = 'ZIP library did not load; reload the page and try again.'; return; }
   el.ldGo.disabled = true; el.ldGo.textContent = 'Loading…'; el.ldErr.textContent = '';
-  const parsed = []; const errs = [];
-  for(const f of files){ try{ parsed.push(await importZip(f)); }catch(e){ errs.push((e && e.message) || ('Could not read ' + f.name)); } }
-  el.ldGo.disabled = false; armReset(el.ldGo, 'Load ZIP…');
-  if(!parsed.length){ el.ldErr.textContent = errs.join(' '); return; }
-  await clearAll();
-  let n = 0; for(const z of parsed){ const res = await mergeIntoLog(z.records); n += res.added + res.updated; }
-  const meta = parsed.map(z => z.meta).find(Boolean) || inspFromRecords([...records.values()]);
-  activate(meta);
-  toast(`Loaded ${n} record${n === 1 ? '' : 's'}${meta.site ? ' for ' + meta.site : ''}` + (errs.length ? ' (' + errs.length + ' file not readable)' : ''));
+  const errs = []; let lastId = null, n = 0, merged = 0, created = 0;
+  for(const f of files){
+    try{
+      const z = await importZip(f);
+      let id = matchInspection(z);
+      if(id) merged++; else { id = createInspection(z.meta || inspFromRecords(z.records), true).id; created++; }
+      const res = await mergeIntoLog(z.records, id); n += res.added + res.updated; lastId = id;
+    }catch(e){ errs.push((e && e.message) || ('Could not read ' + f.name)); }
+  }
+  el.ldGo.disabled = false; el.ldGo.textContent = 'Load ZIP…';
+  if(!lastId){ el.ldErr.textContent = errs.join(' '); return; }
+  openInspection(lastId);
+  toast((created && !merged ? 'Opened: ' : 'Added to existing inspection: ') + `${n} record${n === 1 ? '' : 's'}${insp.site ? ' · ' + insp.site : ''}` + (errs.length ? ` (${errs.length} file not readable)` : ''));
   syncPending();
 });
 
@@ -2049,12 +2098,26 @@ el.ldIn.addEventListener('change', async () => {
   try{ idb = await openDb(); }catch(e){ idb = null; }
   try{
     const all = (await dbAll()) || [];
-    for(const raw of all){ const r = migrate(raw); records.set(r.id, r); if(r.lat != null && (r.locSource === 'gps' || r.locSource === 'manual')) lastLoc = { lat:r.lat, lon:r.lon }; }
+    for(const raw of all){ const r = migrate(raw); allRecs.set(r.id, r); if(r.lat != null && (r.locSource === 'gps' || r.locSource === 'manual')) lastLoc = { lat:r.lat, lon:r.lon }; }
+    const stored = await kvGet('inspections');
+    inspections = Array.isArray(stored) ? stored.filter(x => x && x.id) : [];
+    let activeId = (await kvGet('activeInsp')) || '';
+    /* Upgrade from the single-inspection version: its details and records become the first inspection. */
+    const orphans = [...allRecs.values()].filter(r => !r.inspId || !inspections.some(x => x.id === r.inspId));
+    const legacy = await kvGet('inspection');
+    const legacyOk = !!(legacy && typeof legacy === 'object' && (legacy.site || legacy.startedAt));
+    if(orphans.length || (legacyOk && !inspections.length)){
+      const x = cleanMeta(legacyOk ? legacy : inspFromRecords(orphans), uid()); inspections.push(x);
+      for(const r of orphans){ r.inspId = x.id; try{ await dbPut(r); }catch(e){} }
+      if(legacyOk) activeId = x.id;
+      persistInspections();
+    }
+    if(legacy) kvDel('inspection').catch(()=>{});
+    const a = inspections.find(x => x.id === activeId);
+    if(a){ insp = { ...a }; inspActive = true; loadActive(); }
     renderSubjects();
     const saved = await kvGet('draft');
-    if(saved && saved.subject && CHECKS[saved.subject]){ const d = migrate(saved); if(!draftIsEmpty(d)){ draft = d; renderResume(); } else kvDel('draft').catch(()=>{}); }
-    const m = await kvGet('inspection');
-    if(m && typeof m === 'object' && (m.site || m.startedAt)){ insp = { site:m.site||'', subject:m.subject||'', inspectors:m.inspectors||'', startedAt:m.startedAt||'' }; inspActive = true; }
+    if(saved && saved.subject && CHECKS[saved.subject]){ const d = migrate(saved); if(!d.inspId && inspActive) d.inspId = insp.id; if(!draftIsEmpty(d)){ draft = d; renderResume(); } else kvDel('draft').catch(()=>{}); }
   }catch(e){}
   renderInspHeader();
   if(inspActive) showView('subjects'); else openStart();
