@@ -42,9 +42,24 @@ button{cursor:pointer}
 .sync i{width:9px;height:9px;border-radius:50%;background:var(--muted);display:inline-block}
 .linkbtn{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;font-size:12px}
 .sync.on i{background:var(--ok)} .sync.pending i{background:var(--accent)}
-.siterow{display:flex;gap:8px;align-items:center;margin-top:8px}
-.siterow label{font-family:var(--display);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.siterow input{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--bg)}
+.insprow{display:flex;gap:10px;align-items:center;margin-top:6px}
+.insprow .t{flex:1;min-width:0}
+.insprow b{display:block;font-family:var(--display);font-weight:600;font-size:18px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.insprow span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.insprow .linkbtn{font-size:13px;white-space:nowrap}
+.top.start .tabs{display:none}
+/* Start screen */
+.stcard{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:12px}
+.stcard h2{font-family:var(--display);font-weight:700;font-size:22px;margin:0 0 4px}
+.stcard p{margin:0 0 10px;color:var(--muted);font-size:14px}
+.stcard.cont{border-color:var(--accent);background:var(--accent-soft)}
+.stcard.cont .info b{display:block;font-family:var(--display);font-weight:600;font-size:19px}
+.stcard.cont .info span{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.stcard .field:first-of-type{margin-top:6px}
+.warn{margin-top:12px;background:var(--nok-soft);color:var(--nok);border-radius:8px;padding:10px 12px;font-size:14px}
+.warn .linkbtn{color:var(--nok);font-size:14px;font-weight:600}
+.btn.danger{background:var(--nok);color:#fff}
+.backlink{margin:0 0 12px}
 .tabs{display:flex;gap:4px;margin-top:10px}
 .tabs button{flex:1;background:none;border:0;border-bottom:3px solid transparent;padding:10px 4px;font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
 .tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
@@ -227,9 +242,9 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
     <h1>PV Field Inspection</h1>
     <span class="sync" id="sync"><i></i><span id="syncText">local only</span><button type="button" id="camMode" class="linkbtn">camera: in app</button></span>
   </div>
-  <div class="siterow">
-    <label for="site">Site</label>
-    <input id="site" placeholder="Site name, e.g. Parc Solaire Nord" autocomplete="off">
+  <div class="insprow" id="inspRow" hidden>
+    <div class="t"><b id="hdrSite"></b><span id="hdrSub"></span></div>
+    <button type="button" class="linkbtn" id="hdrChange">Switch inspection</button>
   </div>
   <div class="tabs" role="tablist">
     <button role="tab" id="tabInspect" aria-selected="true">Inspect</button>
@@ -239,10 +254,39 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 </header>
 
 <main>
-  <section id="viewSubjects">
+    <div class="nojs" id="nojs">This is a preview that cannot run the app. Save the file and open it in Chrome (Android) or put it on a website and open it in Safari (iPhone).</div>
+  <section id="viewStart" hidden>
+    <p class="backlink" id="startBackRow" hidden><button type="button" class="linkbtn" id="startBack">← Back to the current inspection</button></p>
+
+    <div class="stcard cont" id="contCard" hidden>
+      <h2>Continue inspection</h2>
+      <div class="info"><b id="contSite"></b><span id="contInfo"></span></div>
+      <button class="btn primary wide" id="contGo" type="button">Continue</button>
+    </div>
+
+    <div class="stcard">
+      <h2>Start a new inspection</h2>
+      <div class="field"><label for="nwSite">Site name</label><input id="nwSite" placeholder="e.g. Parc Solaire Nord" autocomplete="off"></div>
+      <div class="field"><label for="nwSubject">Inspection subject</label><input id="nwSubject" placeholder="e.g. Annual O&amp;M inspection 2026" autocomplete="off"></div>
+      <div class="field"><label for="nwInspectors">Inspector(s)</label><input id="nwInspectors" placeholder="Name(s)" autocomplete="off"></div>
+      <div class="warn" id="nwWarn" hidden><span id="nwWarnText"></span> <button type="button" class="linkbtn" id="nwExport">Export ZIP first</button></div>
+      <div class="err" id="nwErr"></div>
+      <button class="btn primary wide" id="nwGo" type="button">Start inspection</button>
+    </div>
+
+    <div class="stcard">
+      <h2>Continue from a ZIP</h2>
+      <p>Load an inspection exported from this app, for example from another phone.</p>
+      <div class="warn" id="ldWarn" hidden></div>
+      <button class="btn ghost wide" id="ldGo" type="button">Load ZIP…</button>
+      <input type="file" id="ldIn" accept=".zip,application/zip" multiple hidden>
+      <div class="err" id="ldErr"></div>
+    </div>
+  </section>
+
+  <section id="viewSubjects" hidden>
     <p class="hint">Tap a subject, pick the items you are checking, then take photos.</p>
     <div class="resume" id="resume" hidden><div class="t"><span>Unsaved record</span><b id="resumeSubject"></b></div><button type="button" id="resumeGo">Continue</button><button type="button" id="resumeDrop">Discard</button></div>
-    <div class="nojs" id="nojs">This is a preview that cannot run the app. Save the file and open it in Chrome (Android) or put it on a website and open it in Safari (iPhone).</div>
     <div class="subjects" id="subjects">
       <button type="button" class="subj" data-subject="Gate"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">Gate</span><span class="meta">3 items</span></span><span class="badges"></span></button>
       <button type="button" class="subj" data-subject="SHE"><span class="cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="t"><span class="name">SHE</span><span class="meta">5 items</span></span><span class="badges"></span></button>
@@ -385,9 +429,10 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
     </div>
 
     <h3 class="sec">PDF report</h3>
-    <div class="field"><label for="rpSite">Site name on report</label><input id="rpSite" placeholder="Site"></div>
-    <div class="field"><label for="rpInspector">Inspector</label><input id="rpInspector" placeholder="Name(s)"></div>
-    <div class="field"><label for="rpTitle">Report title</label><input id="rpTitle" value="Site Inspection Report"></div>
+    <p class="hint">The report uses the inspection details. Changes here are saved for the whole inspection.</p>
+    <div class="field"><label for="rpSite">Site name</label><input id="rpSite" placeholder="Site" autocomplete="off"></div>
+    <div class="field"><label for="rpTitle">Inspection subject</label><input id="rpTitle" placeholder="Site Inspection Report" autocomplete="off"></div>
+    <div class="field"><label for="rpInspector">Inspector(s)</label><input id="rpInspector" placeholder="Name(s)" autocomplete="off"></div>
     <button class="btn primary wide" id="makePdf" type="button">Generate PDF report</button>
     <div class="err" id="rpErr"></div>
 
@@ -896,7 +941,7 @@ const SEV_BTN = [['sevLow','low'],['sevMed','med'],['sevHigh','high']];
 /* ---------- DOM ---------- */
 const $ = id => document.getElementById(id);
 $('nojs').remove();
-const ids = ['site','sync','syncText','camMode','tabInspect','tabLog','logCount','viewSubjects','viewPick','viewForm','viewLog','subjects',
+const ids = ['inspRow','hdrSite','hdrSub','hdrChange','viewStart','startBackRow','startBack','contCard','contSite','contInfo','contGo','nwSite','nwSubject','nwInspectors','nwWarn','nwWarnText','nwExport','nwErr','nwGo','ldWarn','ldGo','ldIn','ldErr','sync','syncText','camMode','tabInspect','tabLog','logCount','viewSubjects','viewPick','viewForm','viewLog','subjects',
   'resume','resumeSubject','resumeGo','resumeDrop','pickBack','pickSubject','pickChecks','pickNoPhoto','pickPhoto',
   'back','formTitle','fSubject','fChecks','fPhotos','locText','locSrc','locRetry','locEdit','locEditor','latIn','lonIn',
   'objectId','objectIds','resOk','resNok','resNa','sevField','sevLow','sevMed','sevHigh','note','formErr','cancel','save','logSummary','logToExport','savePhotos','exportCsv','exportZip','records',
@@ -1057,6 +1102,8 @@ function geolocate(){
 
 /* ---------- Views ---------- */
 function showView(name){
+  el.viewStart.hidden = name !== 'start';
+  document.querySelector('.top').classList.toggle('start', name === 'start');
   el.viewSubjects.hidden = name !== 'subjects';
   el.viewPick.hidden = name !== 'pick';
   el.viewForm.hidden = name !== 'form';
@@ -1440,7 +1487,7 @@ el.save.addEventListener('click', async () => {
   if(missing.length){ el.formErr.textContent = 'Select ' + missing.join(' and ') + ' before saving.'; return; }
   if(draft.photos.some(p => p.busy)){ el.formErr.textContent = 'A photo is still being processed; wait a moment.'; return; }
   for(const p of draft.photos){ try{ await photoRotate(p); }catch(e){} }
-  const r = { ...draft, note: el.note.value.trim(), objectId: el.objectId.value.trim(), site: el.site.value.trim(), ts: draft.ts || new Date().toISOString(), synced:false };
+  const r = { ...draft, note: el.note.value.trim(), objectId: el.objectId.value.trim(), site: draft.site || insp.site || '', ts: draft.ts || new Date().toISOString(), synced:false };
   records.set(r.id, r);
   try{ await dbPut(r); }catch(e){ toast('Saved in memory only; local storage is unavailable'); }
   draft = null; kvDel('draft').catch(()=>{});
@@ -1561,7 +1608,7 @@ async function saveFile(filename, data){
   }catch(e){ toast('Export failed'); }
 }
 function anchorDownload(blob, name){ const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000); }
-const exportName = ext => `inspection_${slug(el.rpSite.value || el.site.value) || 'site'}_${new Date().toISOString().slice(0,10)}.${ext}`;
+const exportName = ext => `inspection_${slug(insp.site) || 'site'}_${new Date().toISOString().slice(0,10)}.${ext}`;
 el.savePhotos.addEventListener('click', async () => {
   const items = [];
   for(const r of sortedRecords()) r.photos.forEach((p,i) => { if(p.blob && !p.saved) items.push({ r, p, name: photoName(r, i) }); });
@@ -1594,6 +1641,7 @@ el.exportZip.addEventListener('click', async () => {
     const zip = new JSZip();
     zip.file('records.csv', buildCsv(list));
     zip.file('records.json', JSON.stringify(list.map(toDoc), null, 2));
+    zip.file('inspection.json', JSON.stringify({ app:'pv-field-inspection', ...insp, exportedAt:new Date().toISOString() }, null, 2));
     const ph = zip.folder('photos');
     for(const r of list) for(let i = 0; i < r.photos.length; i++){ const bytes = await photoBytes(r.photos[i]); if(bytes) ph.file(photoName(r, i), bytes); }
     const blob = await zip.generateAsync({ type:'blob', compression:'STORE' });
@@ -1629,7 +1677,11 @@ async function importZip(file){
     }
     recs.push(r);
   }
-  return recs;
+  let meta = null;
+  const mf = zip.file(/(^|\/)inspection\.json$/)[0];
+  if(mf){ try{ const m = JSON.parse(await mf.async('string')); if(m && typeof m === 'object') meta = { site:m.site||'', subject:m.subject||'', inspectors:m.inspectors||'', startedAt:m.startedAt||'' }; }catch(e){} }
+  if(!meta && recs.length) meta = inspFromRecords(recs);
+  return { records:recs, meta };
 }
 /* Add imported records to the log; existing records keep their data, but missing photos are filled in. */
 async function mergeIntoLog(recs){
@@ -1654,7 +1706,7 @@ el.zipIn.addEventListener('change', async () => {
   const b = el.zipPick.querySelector('b'); el.zipPick.disabled = true; b.textContent = 'Importing…';
   let tot = { added:0, updated:0, same:0 }; const errs = [];
   for(const f of files){
-    try{ const res = await mergeIntoLog(await importZip(f)); tot.added += res.added; tot.updated += res.updated; tot.same += res.same; }
+    try{ const res = await mergeIntoLog((await importZip(f)).records); tot.added += res.added; tot.updated += res.updated; tot.same += res.same; }
     catch(e){ errs.push((e && e.message) || ('Could not read ' + f.name)); }
   }
   el.zipPick.disabled = false; b.textContent = '+ Import ZIP';
@@ -1708,11 +1760,7 @@ function renderExport(){
   for(const r of list){ const c = by[r.subject] || (by[r.subject] = { n:0, nok:0 }); c.n++; if(r.result === 'nok') c.nok++; }
   el.rsBySubject.innerHTML = has ? SUBJECTS.filter(s => by[s]).map(s => `<span><b>${esc(s)}</b> ${by[s].n}${by[s].nok ? ` (${by[s].nok} NOK)` : ''}</span>`).join('') : '<span>The log is empty. Inspect a site or import a ZIP to get started.</span>';
   renderExportPhotos(list);
-  if(!el.rpSite.value){
-    const sites = {}; for(const r of list) if(r.site) sites[r.site] = (sites[r.site] || 0) + 1;
-    const top = Object.entries(sites).sort((a,b) => b[1] - a[1])[0];
-    el.rpSite.value = top ? top[0] : (el.site.value || '');
-  }
+  el.rpSite.value = insp.site || ''; el.rpTitle.value = insp.subject || ''; el.rpInspector.value = insp.inspectors || '';
 }
 function openExport(){ el.impMsg.hidden = true; renderExport(); showView('export'); }
 el.tabExport.addEventListener('click', openExport);
@@ -1891,8 +1939,8 @@ el.makePdf.addEventListener('click', async () => {
   const list = sortedRecords(); if(!list.length) return;
   el.makePdf.disabled = true; const label = el.makePdf.textContent;
   try{
-    const blob = await buildPdf(list, { site:el.rpSite.value.trim(), inspector:el.rpInspector.value.trim(), title:el.rpTitle.value.trim() }, t => { el.makePdf.textContent = t; });
-    await saveFile(`inspection_report_${slug(el.rpSite.value || el.site.value) || 'site'}_${new Date().toISOString().slice(0,10)}.pdf`, blob);
+    const blob = await buildPdf(list, { site:insp.site, inspector:insp.inspectors, title:insp.subject }, t => { el.makePdf.textContent = t; });
+    await saveFile(`inspection_report_${slug(insp.site) || 'site'}_${new Date().toISOString().slice(0,10)}.pdf`, blob);
   }catch(e){ el.rpErr.textContent = 'PDF failed: ' + (e && e.message || e); }
   el.makePdf.disabled = false; el.makePdf.textContent = label;
 });
@@ -1901,10 +1949,99 @@ el.makePdf.addEventListener('click', async () => {
 function renderCamMode(){ const inpage = camPref() === 'inpage' && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia); el.camMode.textContent = inpage ? 'camera: in app' : 'camera: phone app'; }
 el.camMode.addEventListener('click', () => { setCamPref(camPref() === 'inpage' ? 'native' : 'inpage'); renderCamMode(); toast(camPref() === 'inpage' ? 'Photos are taken inside the app' : 'Photos are taken with the phone camera app'); });
 renderCamMode();
-el.tabInspect.addEventListener('click', () => { renderResume(); showView('subjects'); });
+el.tabInspect.addEventListener('click', () => { if(!inspActive){ openStart(); return; } renderResume(); showView('subjects'); });
 el.tabLog.addEventListener('click', () => { renderLog(); showView('log'); });
-try{ el.site.value = localStorage.getItem('pvfi.site') || ''; }catch(e){}
-el.site.addEventListener('change', () => { try{ localStorage.setItem('pvfi.site', el.site.value); }catch(e){} });
+
+/* ---------- Inspection (site, subject, inspectors) ---------- */
+let insp = { site:'', subject:'', inspectors:'', startedAt:'' };
+let inspActive = false;
+function saveInsp(){ kvSet('inspection', { ...insp }).catch(()=>{}); renderInspHeader(); }
+function renderInspHeader(){
+  el.inspRow.hidden = !inspActive;
+  el.hdrSite.textContent = insp.site || 'Unnamed site';
+  el.hdrSub.textContent = [insp.subject, insp.inspectors].filter(Boolean).join('  ·  ') || 'No subject or inspector set';
+}
+/* Site and other details guessed from the records when none were stored (older versions, or a ZIP without inspection.json). */
+function inspFromRecords(list){
+  const sites = {}; for(const r of list) if(r.site) sites[r.site] = (sites[r.site] || 0) + 1;
+  const top = Object.entries(sites).sort((a,b) => b[1] - a[1])[0];
+  let legacy = ''; try{ legacy = localStorage.getItem('pvfi.site') || ''; }catch(e){}
+  const ts = list.map(r => r.ts).filter(Boolean).sort();
+  return { site: top ? top[0] : legacy, subject:'', inspectors:'', startedAt: ts[0] || new Date().toISOString() };
+}
+function activate(meta){
+  insp = { site:(meta.site||'').trim(), subject:(meta.subject||'').trim(), inspectors:(meta.inspectors||'').trim(), startedAt: meta.startedAt || new Date().toISOString() };
+  inspActive = true; saveInsp(); renderSubjects(); renderResume(); showView('subjects');
+}
+for(const [id, key] of [['rpSite','site'],['rpTitle','subject'],['rpInspector','inspectors']]){
+  el[id].addEventListener('input', () => { insp[key] = el[id].value; renderInspHeader(); });
+  el[id].addEventListener('change', () => { insp[key] = el[id].value.trim(); saveInsp(); });
+}
+
+/* ---------- Start screen ---------- */
+function openStart(){
+  const n = records.size;
+  el.startBackRow.hidden = !inspActive;
+  el.contCard.hidden = !(inspActive || n);
+  if(!el.contCard.hidden){
+    const meta = inspActive ? insp : inspFromRecords([...records.values()]);
+    el.contSite.textContent = meta.site || 'Unnamed site';
+    const last = sortedRecords().map(r => r.ts).filter(Boolean).pop();
+    el.contInfo.textContent = [meta.subject, meta.inspectors, `${n} record${n === 1 ? '' : 's'}`, last ? 'last ' + fmtDate(last) : ''].filter(Boolean).join('  ·  ');
+  }
+  const warnTxt = n ? `This phone still holds ${n} record${n === 1 ? '' : 's'}${el.contSite.textContent ? ' from ' + el.contSite.textContent : ''}. Starting a new inspection deletes the current log.` : '';
+  el.nwWarn.hidden = !n; el.nwWarnText.textContent = warnTxt;
+  el.ldWarn.hidden = !n; el.ldWarn.textContent = n ? warnTxt.replace('Starting a new inspection deletes the current log.', 'Loading a ZIP replaces the current log.') + ' To add a ZIP to the current inspection instead, use Import ZIP on the Export tab.' : '';
+  armReset(el.nwGo, 'Start inspection'); armReset(el.ldGo, 'Load ZIP…');
+  el.nwErr.textContent = ''; el.ldErr.textContent = '';
+  if(!el.nwSite.value && !inspActive && !n){ try{ el.nwSite.value = localStorage.getItem('pvfi.site') || ''; }catch(e){} }
+  showView('start');
+}
+/* Destructive buttons ask for a second tap when the log is not empty. */
+function armReset(btn, label){ btn.dataset.armed = ''; btn.textContent = label; btn.classList.remove('danger'); }
+function needsConfirm(btn, label){
+  if(!records.size || btn.dataset.armed) return false;
+  btn.dataset.armed = '1'; btn.textContent = label; btn.classList.add('danger');
+  setTimeout(() => { if(btn.dataset.armed) armReset(btn, btn === el.nwGo ? 'Start inspection' : 'Load ZIP…'); }, 5000);
+  return true;
+}
+async function clearAll(){
+  for(const r of [...records.values()]) await deleteRecord(r, true);
+  draft = null; kvDel('draft').catch(()=>{});
+}
+el.contGo.addEventListener('click', () => activate(inspActive ? insp : inspFromRecords([...records.values()])));
+el.startBack.addEventListener('click', () => { renderResume(); showView('subjects'); });
+el.hdrChange.addEventListener('click', openStart);
+el.nwExport.addEventListener('click', () => el.exportZip.click());
+el.nwGo.addEventListener('click', async () => {
+  const site = el.nwSite.value.trim();
+  if(!site){ el.nwErr.textContent = 'Enter the site name.'; el.nwSite.focus(); return; }
+  el.nwErr.textContent = '';
+  if(needsConfirm(el.nwGo, `Tap again: delete ${records.size} record${records.size === 1 ? '' : 's'} and start`)) return;
+  await clearAll();
+  activate({ site, subject:el.nwSubject.value, inspectors:el.nwInspectors.value, startedAt:new Date().toISOString() });
+  el.nwSite.value = el.nwSubject.value = el.nwInspectors.value = '';
+  toast('Inspection started: ' + site);
+});
+el.ldGo.addEventListener('click', () => {
+  if(needsConfirm(el.ldGo, `Tap again: replace ${records.size} record${records.size === 1 ? '' : 's'} with a ZIP`)) return;
+  el.ldIn.value = ''; el.ldIn.click();
+});
+el.ldIn.addEventListener('change', async () => {
+  const files = [...(el.ldIn.files || [])]; if(!files.length) return;
+  if(!window.JSZip){ el.ldErr.textContent = 'ZIP library did not load; reload the page and try again.'; return; }
+  el.ldGo.disabled = true; el.ldGo.textContent = 'Loading…'; el.ldErr.textContent = '';
+  const parsed = []; const errs = [];
+  for(const f of files){ try{ parsed.push(await importZip(f)); }catch(e){ errs.push((e && e.message) || ('Could not read ' + f.name)); } }
+  el.ldGo.disabled = false; armReset(el.ldGo, 'Load ZIP…');
+  if(!parsed.length){ el.ldErr.textContent = errs.join(' '); return; }
+  await clearAll();
+  let n = 0; for(const z of parsed){ const res = await mergeIntoLog(z.records); n += res.added + res.updated; }
+  const meta = parsed.map(z => z.meta).find(Boolean) || inspFromRecords([...records.values()]);
+  activate(meta);
+  toast(`Loaded ${n} record${n === 1 ? '' : 's'}${meta.site ? ' for ' + meta.site : ''}` + (errs.length ? ' (' + errs.length + ' file not readable)' : ''));
+  syncPending();
+});
 
 /* ---------- Boot ---------- */
 (async () => {
@@ -1916,7 +2053,11 @@ el.site.addEventListener('change', () => { try{ localStorage.setItem('pvfi.site'
     renderSubjects();
     const saved = await kvGet('draft');
     if(saved && saved.subject && CHECKS[saved.subject]){ const d = migrate(saved); if(!draftIsEmpty(d)){ draft = d; renderResume(); } else kvDel('draft').catch(()=>{}); }
+    const m = await kvGet('inspection');
+    if(m && typeof m === 'object' && (m.site || m.startedAt)){ insp = { site:m.site||'', subject:m.subject||'', inspectors:m.inspectors||'', startedAt:m.startedAt||'' }; inspActive = true; }
   }catch(e){}
+  renderInspHeader();
+  if(inspActive) showView('subjects'); else openStart();
   initCaps();
 })();
 })();
