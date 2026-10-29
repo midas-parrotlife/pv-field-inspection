@@ -122,7 +122,7 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 
 /* Log */
 .logbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-.logbar .btn{font-size:16px;padding:10px 12px}
+.logbar .linkbtn{font-size:14px}
 .logbar .spacer{flex:1}
 .summary{font-size:14px;color:var(--muted)}
 .rec{display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;border-left:5px solid var(--line)}
@@ -160,8 +160,24 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 .tile.nok b{color:var(--nok)}
 .bysub{margin-top:10px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 12px}
 .bysub span b{color:var(--fg);font-weight:600}
-.rphead{display:flex;align-items:baseline;justify-content:space-between;margin-top:16px}
-.rphead .lbl{font-family:var(--display);font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.sec{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px}
+.msg{margin-top:8px;font-size:14px;background:var(--ok-soft);color:var(--ok);border-radius:8px;padding:10px 12px}
+.msg.bad{background:var(--nok-soft);color:var(--nok)}
+.exgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.excard{display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-height:64px}
+.excard b{font-family:var(--display);font-size:18px;font-weight:600}
+.excard span{font-size:13px;color:var(--muted)}
+.excard.main{grid-column:1 / -1;background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.excard.main span{color:var(--accent-ink);opacity:.8}
+.excard:disabled{opacity:.5}
+.btn.wide{width:100%;margin-top:14px}
+.phcheck{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.phcheck summary{cursor:pointer;font-weight:600}
+.phcheck summary span{color:var(--muted);font-weight:400}
+.phcheck .hint{margin:8px 0 0}
+.danger{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.danger .linkbtn{font-size:15px;color:var(--nok)}
+.danger .linkbtn.confirm{font-weight:700}
 .rpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:8px}
 .rpgrid .cap{font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
@@ -218,7 +234,7 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
   <div class="tabs" role="tablist">
     <button role="tab" id="tabInspect" aria-selected="true">Inspect</button>
     <button role="tab" id="tabLog" aria-selected="false">Log<span class="n" id="logCount">0</span></button>
-    <button role="tab" id="tabReport" aria-selected="false">Report</button>
+    <button role="tab" id="tabExport" aria-selected="false">Export</button>
   </div>
 </header>
 
@@ -339,43 +355,52 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
     <div class="logbar">
       <span class="summary" id="logSummary"></span>
       <span class="spacer"></span>
-      <button class="btn ghost" id="savePhotos" type="button">Save photos</button>
-      <button class="btn ghost" id="exportCsv" type="button">CSV</button>
-      <button class="btn primary" id="exportZip" type="button">Export ZIP</button>
+      <button class="linkbtn" id="logToExport" type="button">Import / export →</button>
     </div>
     <div id="records"></div>
   </section>
 
-  <section id="viewReport" hidden>
-    <p class="hint">Combine exported ZIPs (and the records on this device) into one inspection, then download the merged ZIP or a PDF report.</p>
-    <button class="drop" id="zipPick" type="button">
-      <b>+ Add ZIP files</b>
-      <span>Exports from this app: records.json, records.csv and photos/</span>
-    </button>
-    <input type="file" id="zipIn" accept=".zip,application/zip" multiple hidden>
-    <div class="srcs" id="srcList"></div>
-    <label class="inc" id="incLocalRow" hidden><input type="checkbox" id="incLocal" checked> <span id="incLocalText">Include records on this device</span></label>
-
-    <div class="rsum" id="rsum" hidden>
+  <section id="viewExport" hidden>
+    <div class="rsum" id="rsum">
       <div class="tile"><b id="rsRecords">0</b><span>records</span></div>
       <div class="tile"><b id="rsItems">0</b><span>items</span></div>
       <div class="tile nok"><b id="rsNok">0</b><span>not OK</span></div>
       <div class="tile"><b id="rsPhotos">0</b><span>photos</span></div>
     </div>
     <div id="rsBySubject" class="bysub"></div>
-    <div class="rphead" id="rpPhotosHead" hidden><span class="lbl">Photos</span><span class="summary">Tap ↻ on a photo that is on its side</span></div>
-    <div class="rpgrid" id="rpPhotos"></div>
 
+    <h3 class="sec">Import</h3>
+    <button class="drop" id="zipPick" type="button">
+      <b>+ Import ZIP</b>
+      <span>Adds the records to your log. Records already in the log are skipped and missing photos are filled in. You can pick several ZIPs at once.</span>
+    </button>
+    <input type="file" id="zipIn" accept=".zip,application/zip" multiple hidden>
+    <div class="msg" id="impMsg" hidden></div>
+
+    <h3 class="sec">Export</h3>
+    <div class="exgrid">
+      <button class="excard" id="savePhotos" type="button"><b>Save photos</b><span>To your gallery</span></button>
+      <button class="excard" id="exportCsv" type="button"><b>Save CSV</b><span>Table for Excel</span></button>
+      <button class="excard main" id="exportZip" type="button"><b>Export ZIP</b><span>Full log: CSV, JSON and all photos. Import it on another phone or keep it as backup.</span></button>
+    </div>
+
+    <h3 class="sec">PDF report</h3>
     <div class="field"><label for="rpSite">Site name on report</label><input id="rpSite" placeholder="Site"></div>
     <div class="field"><label for="rpInspector">Inspector</label><input id="rpInspector" placeholder="Name(s)"></div>
     <div class="field"><label for="rpTitle">Report title</label><input id="rpTitle" value="Site Inspection Report"></div>
-    <label class="inc"><input type="checkbox" id="rpLegacy"> <span>Legacy layout: leave out Object ID and Severity (records from the first app version)</span></label>
-
-    <div class="actions">
-      <button class="btn ghost" id="mergeZip" type="button" disabled>Merged ZIP</button>
-      <button class="btn primary" id="makePdf" type="button" disabled>PDF report</button>
-    </div>
+    <button class="btn primary wide" id="makePdf" type="button">Generate PDF report</button>
     <div class="err" id="rpErr"></div>
+
+    <details class="phcheck" id="rpPhotosBox" hidden>
+      <summary>Check photo orientation <span id="rpPhotosCount"></span></summary>
+      <p class="hint">Tap ↻ on a photo that is on its side. The change is saved in the log.</p>
+      <div class="rpgrid" id="rpPhotos"></div>
+    </details>
+
+    <div class="danger">
+      <button class="linkbtn" id="clearLog" type="button">Clear log</button>
+      <span class="summary">Removes all records and photos from this phone. Export a ZIP first.</span>
+    </div>
   </section>
 </main>
 
@@ -874,8 +899,8 @@ $('nojs').remove();
 const ids = ['site','sync','syncText','camMode','tabInspect','tabLog','logCount','viewSubjects','viewPick','viewForm','viewLog','subjects',
   'resume','resumeSubject','resumeGo','resumeDrop','pickBack','pickSubject','pickChecks','pickNoPhoto','pickPhoto',
   'back','formTitle','fSubject','fChecks','fPhotos','locText','locSrc','locRetry','locEdit','locEditor','latIn','lonIn',
-  'objectId','objectIds','resOk','resNok','resNa','sevField','sevLow','sevMed','sevHigh','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
-  'tabReport','viewReport','zipPick','zipIn','srcList','incLocalRow','incLocal','incLocalText','rsum','rsRecords','rsItems','rsNok','rsPhotos','rsBySubject','rpPhotosHead','rpPhotos','rpSite','rpInspector','rpTitle','rpLegacy','mergeZip','makePdf','rpErr',
+  'objectId','objectIds','resOk','resNok','resNa','sevField','sevLow','sevMed','sevHigh','note','formErr','cancel','save','logSummary','logToExport','savePhotos','exportCsv','exportZip','records',
+  'tabExport','viewExport','zipPick','zipIn','impMsg','rpPhotosBox','rpPhotosCount','clearLog','rsum','rsRecords','rsItems','rsNok','rsPhotos','rsBySubject','rpPhotos','rpSite','rpInspector','rpTitle','makePdf','rpErr',
   'cam','camView','camVideo','camSubject','camItems','camSkip','camClose','camMsg','camNative','camShot','camTorch','camFlip','camStage','camFlash','camZoom','camBrightBtn','camBrightRow','camBright','toast'];
 const el = {}; for(const id of ids) el[id] = $(id);
 
@@ -1036,10 +1061,10 @@ function showView(name){
   el.viewPick.hidden = name !== 'pick';
   el.viewForm.hidden = name !== 'form';
   el.viewLog.hidden = name !== 'log';
-  el.viewReport.hidden = name !== 'report';
-  el.tabInspect.setAttribute('aria-selected', name !== 'log' && name !== 'report');
+  el.viewExport.hidden = name !== 'export';
+  el.tabInspect.setAttribute('aria-selected', name !== 'log' && name !== 'export');
   el.tabLog.setAttribute('aria-selected', name === 'log');
-  el.tabReport.setAttribute('aria-selected', name === 'report');
+  el.tabExport.setAttribute('aria-selected', name === 'export');
   window.scrollTo(0,0);
 }
 function draftIsEmpty(d){ return !d || (!(d.photos && d.photos.length) && !(d.checks && d.checks.length) && !d.result && !d.severity && !(d.note||'').trim() && !(d.objectId||'').trim()); }
@@ -1462,12 +1487,12 @@ function editRecord(r){
   draft = { ...r, checks:[...r.checks], photos: r.photos.map(p => ({ ...p })), synced:false };
   openForm();
 }
-async function deleteRecord(r){
+async function deleteRecord(r, quiet){
   records.delete(r.id);
   try{ await dbDel(r.id); }catch(e){}
   try{ if(caps.db) await caps.db.doc('inspections/' + r.id).delete(); }catch(e){}
   for(const p of r.photos){ try{ if(caps.assets && p.asset) await caps.assets.delete(p.asset); }catch(e){} }
-  toast('Deleted');
+  if(!quiet) toast('Deleted');
 }
 
 /* ---------- Sync to artifact storage ---------- */
@@ -1480,7 +1505,7 @@ function setSyncUI(){
 }
 function toDoc(r){
   return { id:r.id, ts:r.ts, site:r.site||'', subject:r.subject, objectId:r.objectId||'', checks:r.checks, result:r.result, severity:r.severity||'', note:r.note||'', lat:r.lat, lon:r.lon, acc:r.acc, locSource:r.locSource||'',
-    photos: r.photos.map((p,i) => ({ id:p.id, asset:p.asset||null, thumb: i === 0 && p.thumb && p.thumb.startsWith('data:') ? p.thumb : null })) };
+    photos: r.photos.map((p,i) => ({ id:p.id, asset:p.asset||null, rot:p.rot||0, thumb: i === 0 && p.thumb && p.thumb.startsWith('data:') ? p.thumb : null })) };
 }
 async function syncPending(){
   if(!caps.db || syncing) return;
@@ -1505,7 +1530,7 @@ async function mergeRemote(){
     for(const doc of snap.docs){
       const d = doc.data(); if(!d || records.has(doc.id)) continue;
       const r = migrate({ ...d, id:doc.id, synced:true });
-      r.photos = r.photos.map(p => ({ id:p.id || uid(), asset:p.asset||null, blob:null, thumb: p.thumb || (p.asset ? '/_blob/' + p.asset : null), saved:false }));
+      r.photos = r.photos.map(p => ({ id:p.id || uid(), asset:p.asset||null, rot:p.rot||0, blob:null, thumb: p.thumb || (p.asset ? '/_blob/' + p.asset : null), saved:false }));
       records.set(r.id, r); try{ await dbPut(r); }catch(e){} added++;
     }
     if(added){ renderSubjects(); if(!el.viewLog.hidden) renderLog(); }
@@ -1536,10 +1561,11 @@ async function saveFile(filename, data){
   }catch(e){ toast('Export failed'); }
 }
 function anchorDownload(blob, name){ const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000); }
+const exportName = ext => `inspection_${slug(el.rpSite.value || el.site.value) || 'site'}_${new Date().toISOString().slice(0,10)}.${ext}`;
 el.savePhotos.addEventListener('click', async () => {
   const items = [];
   for(const r of sortedRecords()) r.photos.forEach((p,i) => { if(p.blob && !p.saved) items.push({ r, p, name: photoName(r, i) }); });
-  if(!items.length){ toast(records.size ? 'All photos are already saved to this phone' : 'No photos yet'); return; }
+  if(!items.length){ toast(records.size ? 'All photos are already saved to this phone' : 'No photos in the log yet'); return; }
   const files = []; for(const x of items){ const b = await photoBytes(x.p); if(b) files.push(new File([b], x.name, { type:'image/jpeg' })); }
   let done = false;
   try{
@@ -1556,134 +1582,14 @@ el.savePhotos.addEventListener('click', async () => {
   for(const r of touched){ try{ await dbPut(r); }catch(e){} }
   toast(`${items.length} photo${items.length>1?'s':''} saved to this phone`);
 });
-el.exportCsv.addEventListener('click', () => saveFile(`inspection_${slug(el.site.value) || 'site'}_${new Date().toISOString().slice(0,10)}.csv`, buildCsv(sortedRecords())));
+el.exportCsv.addEventListener('click', () => {
+  if(!records.size){ toast('The log is empty'); return; }
+  saveFile(exportName('csv'), buildCsv(sortedRecords()));
+});
 el.exportZip.addEventListener('click', async () => {
-  if(!window.JSZip){ toast('ZIP library did not load; use CSV export'); return; }
-  const list = sortedRecords(); if(!list.length){ toast('Nothing to export yet'); return; }
-  el.exportZip.disabled = true; el.exportZip.textContent = 'Packing…';
-  try{
-    const zip = new JSZip();
-    zip.file('records.csv', buildCsv(list));
-    zip.file('records.json', JSON.stringify(list.map(toDoc), null, 2));
-    const ph = zip.folder('photos');
-    for(const r of list){
-      for(let i = 0; i < r.photos.length; i++){ const bytes = await photoBytes(r.photos[i]); if(bytes) ph.file(photoName(r, i), bytes); }
-    }
-    const blob = await zip.generateAsync({ type:'blob', compression:'STORE' });
-    await saveFile(`inspection_${slug(el.site.value) || 'site'}_${new Date().toISOString().slice(0,10)}.zip`, blob);
-  }catch(e){ toast('Export failed'); }
-  el.exportZip.disabled = false; el.exportZip.textContent = 'Export ZIP';
-});
-
-/* ---------- Report: merge ZIPs + PDF ---------- */
-const sources = [];   // [{name, records}]
-const rotOverride = new Map();   // 'recordId:index' -> clockwise degrees, set from the photo grid
-let rpUrls = [];
-function normalizeImported(d){
-  const r = migrate({ ...d });
-  r.synced = true; r.site = r.site || '';
-  r.photos = (r.photos || []).map((p,i) => ({ id:p.id || ('p'+i), blob:null, thumb:p.thumb || null, asset:p.asset || null, saved:false }));
-  return r;
-}
-async function importZip(file){
-  const zip = await JSZip.loadAsync(file);
-  const jf = zip.file(/(^|\/)records\.json$/)[0];
-  if(!jf) throw new Error(file.name + ': no records.json inside');
-  const list = JSON.parse(await jf.async('string'));
-  if(!Array.isArray(list)) throw new Error(file.name + ': records.json is not a list');
-  const names = Object.keys(zip.files).filter(n => /\.jpe?g$/i.test(n) && !zip.files[n].dir);
-  const blobOf = async n => new Blob([await zip.file(n).async('arraybuffer')], { type:'image/jpeg' });
-  const recs = [];
-  for(const d of list){
-    const r = normalizeImported(d);
-    for(let i = 0; i < r.photos.length; i++){
-      let n = names.find(x => x.endsWith(`_${r.id}_${i+1}.jpg`));
-      if(!n && i === 0) n = names.find(x => x.endsWith(`_${r.id}.jpg`));
-      if(n) r.photos[i].blob = await blobOf(n);
-    }
-    recs.push(r);
-  }
-  return { name:file.name, records:recs };
-}
-function mergedRecords(){
-  const map = new Map();
-  const put = r => {
-    const old = map.get(r.id);
-    if(!old){ map.set(r.id, { ...r, checks:[...r.checks], photos:r.photos.map(p => ({ ...p })) }); return; }
-    const photos = [];
-    const n = Math.max(old.photos.length, r.photos.length);
-    for(let i = 0; i < n; i++){ const a = old.photos[i], b = r.photos[i]; photos.push((b && b.blob) ? { ...b } : (a ? { ...a } : { ...b })); }
-    map.set(r.id, { ...old, ...r, checks:[...r.checks], photos });
-  };
-  for(const src of sources) for(const r of src.records) put(r);
-  if(el.incLocal.checked) for(const r of records.values()) put(r);
-  for(const r of map.values()) r.photos.forEach((p,i) => { const o = rotOverride.get(r.id + ':' + i); if(o != null) p.rot = o; });
-  return [...map.values()].sort((a,b) => (a.ts||'').localeCompare(b.ts||''));
-}
-function renderReportPhotos(list){
-  rpUrls.forEach(u => URL.revokeObjectURL(u)); rpUrls = [];
-  el.rpPhotos.innerHTML = '';
-  let n = 0;
-  for(const r of list) r.photos.forEach((p,i) => {
-    const src = p.blob ? URL.createObjectURL(p.blob) : (p.thumb || (p.asset ? '/_blob/' + p.asset : null));
-    if(!src) return; if(p.blob) rpUrls.push(src); n++;
-    const w = document.createElement('div');
-    w.innerHTML = `<div class="ph"><img alt="">${ROT_BTN}</div><div class="cap"></div>`;
-    const im = w.querySelector('img'); im.src = src; if(p.rot) im.style.transform = `rotate(${p.rot}deg)`;
-    w.querySelector('.cap').textContent = r.subject + (r.objectId ? ' · ' + r.objectId : '');
-    w.querySelector('.r').addEventListener('click', () => { const v = ((p.rot || 0) + 90) % 360; rotOverride.set(r.id + ':' + i, v); p.rot = v; im.style.transform = v ? `rotate(${v}deg)` : ''; });
-    el.rpPhotos.appendChild(w);
-  });
-  el.rpPhotosHead.hidden = n === 0;
-}
-function renderReport(){
-  el.srcList.innerHTML = '';
-  sources.forEach((src, i) => {
-    const d = document.createElement('div'); d.className = 'src';
-    const ph = src.records.reduce((n,r) => n + r.photos.filter(p => p.blob).length, 0);
-    d.innerHTML = `<span class="n"></span><span class="c">${src.records.length} rec · ${ph} photos</span><button type="button" aria-label="Remove">×</button>`;
-    d.querySelector('.n').textContent = src.name;
-    d.querySelector('button').addEventListener('click', () => { sources.splice(i,1); renderReport(); });
-    el.srcList.appendChild(d);
-  });
-  el.incLocalRow.hidden = records.size === 0;
-  el.incLocalText.textContent = `Include the ${records.size} record${records.size === 1 ? '' : 's'} on this device`;
-  const list = mergedRecords();
-  const has = list.length > 0;
-  el.rsum.hidden = !has; el.mergeZip.disabled = !has; el.makePdf.disabled = !has; el.rpErr.textContent = '';
-  if(!has){ el.rsBySubject.innerHTML = ''; renderReportPhotos([]); return; }
-  renderReportPhotos(list);
-  el.rsRecords.textContent = list.length;
-  el.rsItems.textContent = list.reduce((n,r) => n + r.checks.length, 0);
-  el.rsNok.textContent = list.filter(r => r.result === 'nok').length;
-  el.rsPhotos.textContent = list.reduce((n,r) => n + r.photos.filter(p => p.blob || p.asset).length, 0);
-  const by = {};
-  for(const r of list){ const c = by[r.subject] || (by[r.subject] = { n:0, nok:0 }); c.n++; if(r.result === 'nok') c.nok++; }
-  el.rsBySubject.innerHTML = SUBJECTS.filter(s => by[s]).map(s => `<span><b>${esc(s)}</b> ${by[s].n}${by[s].nok ? ` (${by[s].nok} NOK)` : ''}</span>`).join('');
-  if(!el.rpLegacy.dataset.touched) el.rpLegacy.checked = !list.some(r => (r.objectId||'').trim() || r.severity);
-  if(!el.rpSite.value){
-    const sites = {}; for(const r of list) if(r.site) sites[r.site] = (sites[r.site] || 0) + 1;
-    const top = Object.entries(sites).sort((a,b) => b[1] - a[1])[0];
-    el.rpSite.value = top ? top[0] : (el.site.value || '');
-  }
-}
-el.zipPick.addEventListener('click', () => { el.zipIn.value = ''; el.zipIn.click(); });
-el.zipIn.addEventListener('change', async () => {
-  const files = [...(el.zipIn.files || [])]; if(!files.length) return;
-  el.zipPick.disabled = true; el.rpErr.textContent = '';
-  for(const f of files){
-    try{ const src = await importZip(f); const i = sources.findIndex(x => x.name === src.name); if(i >= 0) sources[i] = src; else sources.push(src); }
-    catch(e){ el.rpErr.textContent += (e && e.message || 'Could not read ' + f.name) + ' '; }
-  }
-  el.zipPick.disabled = false; renderReport();
-});
-el.incLocal.addEventListener('change', renderReport);
-el.rpLegacy.addEventListener('change', () => { el.rpLegacy.dataset.touched = '1'; });
-el.tabReport.addEventListener('click', () => { renderReport(); showView('report'); });
-
-el.mergeZip.addEventListener('click', async () => {
-  const list = mergedRecords(); if(!list.length) return;
-  el.mergeZip.disabled = true; el.mergeZip.textContent = 'Packing…';
+  if(!window.JSZip){ toast('ZIP library did not load; use Save CSV'); return; }
+  const list = sortedRecords(); if(!list.length){ toast('The log is empty'); return; }
+  const label = el.exportZip.querySelector('b'); el.exportZip.disabled = true; label.textContent = 'Packing…';
   try{
     const zip = new JSZip();
     zip.file('records.csv', buildCsv(list));
@@ -1691,9 +1597,135 @@ el.mergeZip.addEventListener('click', async () => {
     const ph = zip.folder('photos');
     for(const r of list) for(let i = 0; i < r.photos.length; i++){ const bytes = await photoBytes(r.photos[i]); if(bytes) ph.file(photoName(r, i), bytes); }
     const blob = await zip.generateAsync({ type:'blob', compression:'STORE' });
-    await saveFile(`inspection_${slug(el.rpSite.value) || 'site'}_merged_${new Date().toISOString().slice(0,10)}.zip`, blob);
-  }catch(e){ toast('Merge failed'); }
-  el.mergeZip.disabled = false; el.mergeZip.textContent = 'Merged ZIP';
+    await saveFile(exportName('zip'), blob);
+  }catch(e){ toast('Export failed'); }
+  el.exportZip.disabled = false; label.textContent = 'Export ZIP';
+});
+
+/* ---------- Import ZIP into the log ---------- */
+let rpUrls = [];
+function normalizeImported(d){
+  const r = migrate({ ...d });
+  r.synced = false; r.site = r.site || '';
+  r.photos = (r.photos || []).map((p,i) => ({ id:p.id || ('p'+i), blob:null, thumb:p.thumb || null, asset:p.asset || null, rot:p.rot || 0, saved:false }));
+  return r;
+}
+async function importZip(file){
+  const zip = await JSZip.loadAsync(file);
+  const jf = zip.file(/(^|\/)records\.json$/)[0];
+  if(!jf) throw new Error(file.name + ' has no records.json; is it an export from this app?');
+  const list = JSON.parse(await jf.async('string'));
+  if(!Array.isArray(list)) throw new Error(file.name + ': records.json is not a list');
+  const names = Object.keys(zip.files).filter(n => /\.jpe?g$/i.test(n) && !zip.files[n].dir);
+  const blobOf = async n => new Blob([await zip.file(n).async('arraybuffer')], { type:'image/jpeg' });
+  const recs = [];
+  for(const d of list){
+    if(!d || !d.id || !d.subject) continue;
+    const r = normalizeImported(d);
+    for(let i = 0; i < r.photos.length; i++){
+      let n = names.find(x => x.endsWith(`_${r.id}_${i+1}.jpg`));
+      if(!n && i === 0) n = names.find(x => x.endsWith(`_${r.id}.jpg`));
+      if(n){ r.photos[i].blob = await blobOf(n); r.photos[i].rot = 0; }   // exported files already have their rotation applied
+    }
+    recs.push(r);
+  }
+  return recs;
+}
+/* Add imported records to the log; existing records keep their data, but missing photos are filled in. */
+async function mergeIntoLog(recs){
+  let added = 0, updated = 0, same = 0;
+  for(const r of recs){
+    const old = records.get(r.id);
+    if(!old){ records.set(r.id, r); try{ await dbPut(r); }catch(e){} added++; continue; }
+    let changed = false;
+    r.photos.forEach((p,i) => {
+      const o = old.photos[i];
+      if(!o){ old.photos[i] = p; changed = true; }
+      else if(!o.blob && p.blob){ o.blob = p.blob; o.rot = 0; if(!o.thumb || !String(o.thumb).startsWith('data:')) o.thumb = p.thumb; changed = true; }
+    });
+    if(changed){ try{ await dbPut(old); }catch(e){} updated++; } else same++;
+  }
+  return { added, updated, same };
+}
+el.zipPick.addEventListener('click', () => { el.zipIn.value = ''; el.zipIn.click(); });
+el.zipIn.addEventListener('change', async () => {
+  const files = [...(el.zipIn.files || [])]; if(!files.length) return;
+  if(!window.JSZip){ showMsg('ZIP library did not load; reload the page and try again.', true); return; }
+  const b = el.zipPick.querySelector('b'); el.zipPick.disabled = true; b.textContent = 'Importing…';
+  let tot = { added:0, updated:0, same:0 }; const errs = [];
+  for(const f of files){
+    try{ const res = await mergeIntoLog(await importZip(f)); tot.added += res.added; tot.updated += res.updated; tot.same += res.same; }
+    catch(e){ errs.push((e && e.message) || ('Could not read ' + f.name)); }
+  }
+  el.zipPick.disabled = false; b.textContent = '+ Import ZIP';
+  const parts = [`${tot.added} record${tot.added === 1 ? '' : 's'} added`];
+  if(tot.updated) parts.push(`${tot.updated} completed with missing photos`);
+  if(tot.same) parts.push(`${tot.same} already in the log`);
+  showMsg((files.length > 1 ? `${files.length} ZIPs: ` : '') + parts.join(', ') + '.' + (errs.length ? ' ' + errs.join(' ') : ''), errs.length && !tot.added && !tot.updated);
+  renderSubjects(); renderExport(); syncPending();
+});
+function showMsg(t, bad){ el.impMsg.hidden = false; el.impMsg.textContent = t; el.impMsg.classList.toggle('bad', !!bad); }
+
+/* ---------- Export tab ---------- */
+function renderExportPhotos(list){
+  rpUrls.forEach(u => URL.revokeObjectURL(u)); rpUrls = [];
+  el.rpPhotos.innerHTML = '';
+  let n = 0;
+  for(const r of list) r.photos.forEach(p => {
+    const src = p.blob ? URL.createObjectURL(p.blob) : (p.thumb || (p.asset ? '/_blob/' + p.asset : null));
+    if(!src) return; if(p.blob) rpUrls.push(src); n++;
+    const w = document.createElement('div');
+    w.innerHTML = `<div class="ph"><img alt="">${ROT_BTN}</div><div class="cap"></div>`;
+    const im = w.querySelector('img'); im.src = src; if(p.rot) im.style.transform = `rotate(${p.rot}deg)`;
+    w.querySelector('.cap').textContent = r.subject + (r.objectId ? ' · ' + r.objectId : '');
+    w.querySelector('.r').addEventListener('click', () => { p.rot = ((p.rot || 0) + 90) % 360; im.style.transform = p.rot ? `rotate(${p.rot}deg)` : ''; queueRotate(r); });
+    el.rpPhotos.appendChild(w);
+  });
+  el.rpPhotosBox.hidden = n === 0;
+  el.rpPhotosCount.textContent = `(${n})`;
+}
+/* Rotation taps are previewed instantly and written to the log after a short pause. */
+const rotQueue = new Set(); let rotTimer = null;
+function queueRotate(r){ rotQueue.add(r); clearTimeout(rotTimer); rotTimer = setTimeout(flushRotate, 1200); }
+async function flushRotate(){
+  const list = [...rotQueue]; rotQueue.clear();
+  for(const r of list){
+    for(const p of r.photos){ if(p.blob && p.rot){ try{ await photoRotate(p); p.asset = null; p.saved = false; }catch(e){} } }
+    r.synced = false; try{ await dbPut(r); }catch(e){}
+  }
+  if(list.length){ syncPending(); if(!el.viewExport.hidden && !rotQueue.size) renderExportPhotos(sortedRecords()); }
+}
+function renderExport(){
+  const list = sortedRecords();
+  const has = list.length > 0;
+  [el.savePhotos, el.exportCsv, el.exportZip, el.makePdf].forEach(b => b.disabled = !has);
+  el.rpErr.textContent = '';
+  el.rsRecords.textContent = list.length;
+  el.rsItems.textContent = list.reduce((n,r) => n + r.checks.length, 0);
+  el.rsNok.textContent = list.filter(r => r.result === 'nok').length;
+  el.rsPhotos.textContent = list.reduce((n,r) => n + r.photos.filter(p => p.blob || p.asset).length, 0);
+  const by = {};
+  for(const r of list){ const c = by[r.subject] || (by[r.subject] = { n:0, nok:0 }); c.n++; if(r.result === 'nok') c.nok++; }
+  el.rsBySubject.innerHTML = has ? SUBJECTS.filter(s => by[s]).map(s => `<span><b>${esc(s)}</b> ${by[s].n}${by[s].nok ? ` (${by[s].nok} NOK)` : ''}</span>`).join('') : '<span>The log is empty. Inspect a site or import a ZIP to get started.</span>';
+  renderExportPhotos(list);
+  if(!el.rpSite.value){
+    const sites = {}; for(const r of list) if(r.site) sites[r.site] = (sites[r.site] || 0) + 1;
+    const top = Object.entries(sites).sort((a,b) => b[1] - a[1])[0];
+    el.rpSite.value = top ? top[0] : (el.site.value || '');
+  }
+}
+function openExport(){ el.impMsg.hidden = true; renderExport(); showView('export'); }
+el.tabExport.addEventListener('click', openExport);
+el.logToExport.addEventListener('click', openExport);
+el.clearLog.addEventListener('click', async () => {
+  if(!records.size){ toast('The log is already empty'); return; }
+  if(!el.clearLog.classList.contains('confirm')){
+    el.clearLog.classList.add('confirm'); el.clearLog.textContent = `Tap again to delete all ${records.size} records`;
+    setTimeout(() => { el.clearLog.classList.remove('confirm'); el.clearLog.textContent = 'Clear log'; }, 4000); return;
+  }
+  el.clearLog.classList.remove('confirm'); el.clearLog.textContent = 'Clear log';
+  for(const r of [...records.values()]) await deleteRecord(r, true);
+  renderSubjects(); renderExport(); toast('Log cleared');
 });
 
 /* PDF */
@@ -1716,7 +1748,7 @@ async function buildPdf(list, meta, onProgress){
   const doc = new jsPDF({ unit:'mm', format:'a4', compress:true });
   const W = 210, H = 297, M = 15, TOP = 20, CW = W - 2*M;
   const C = { ink:[22,29,27], muted:[93,105,102], line:[211,217,213], accent:[242,183,5], ok:[27,127,71], nok:[194,54,43], na:[93,105,102], sevH:[194,54,43], sevM:[214,150,0], sevL:[27,127,71] };
-  const L = !!meta.legacy;
+  const L = !list.some(r => (r.objectId||'').trim() || r.severity);   // older records: leave out Object ID and Severity
   let y = TOP;
   const ensure = h => { if(y + h > H - M - 6){ doc.addPage(); y = TOP; } };
   const text = (t, x, yy, o) => doc.text(String(t), x, yy, o);
@@ -1856,11 +1888,11 @@ async function buildPdf(list, meta, onProgress){
 }
 el.makePdf.addEventListener('click', async () => {
   if(!(window.jspdf && window.jspdf.jsPDF)){ el.rpErr.textContent = 'PDF library did not load; check your connection and reload.'; return; }
-  const list = mergedRecords(); if(!list.length) return;
+  const list = sortedRecords(); if(!list.length) return;
   el.makePdf.disabled = true; const label = el.makePdf.textContent;
   try{
-    const blob = await buildPdf(list, { site:el.rpSite.value.trim(), inspector:el.rpInspector.value.trim(), title:el.rpTitle.value.trim(), legacy:el.rpLegacy.checked }, t => { el.makePdf.textContent = t; });
-    await saveFile(`inspection_report_${slug(el.rpSite.value) || 'site'}_${new Date().toISOString().slice(0,10)}.pdf`, blob);
+    const blob = await buildPdf(list, { site:el.rpSite.value.trim(), inspector:el.rpInspector.value.trim(), title:el.rpTitle.value.trim() }, t => { el.makePdf.textContent = t; });
+    await saveFile(`inspection_report_${slug(el.rpSite.value || el.site.value) || 'site'}_${new Date().toISOString().slice(0,10)}.pdf`, blob);
   }catch(e){ el.rpErr.textContent = 'PDF failed: ' + (e && e.message || e); }
   el.makePdf.disabled = false; el.makePdf.textContent = label;
 });
