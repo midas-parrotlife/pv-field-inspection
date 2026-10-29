@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-pn/pM7ezZfa02XZjfK8GbgqGnbRxQ7f34EI14FT1JL4=' 'sha256-DD3Wsn3yxPXFVmDz/t+8wMNvtAkPQed8Pfb0TTUMZ/8=' 'sha256-8qu2BQUSHhsRm5fhQc8ztO+dVFln0qnYH35UHGHqM68=' 'sha256-okgo2IqfvIJvsnaFPG3gr9sA0lMRJF+QO99Qkb5hDSw='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; media-src 'self' blob: mediastream:; connect-src 'none'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-pn/pM7ezZfa02XZjfK8GbgqGnbRxQ7f34EI14FT1JL4=' 'sha256-DD3Wsn3yxPXFVmDz/t+8wMNvtAkPQed8Pfb0TTUMZ/8=' 'sha256-8qu2BQUSHhsRm5fhQc8ztO+dVFln0qnYH35UHGHqM68=' 'sha256-3Xzf8ng5OuFxtqDy3Kens6yTyQhzgK4fq6g5LxuEXGc='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; media-src 'self' blob: mediastream:; connect-src 'none'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -79,7 +79,10 @@ button{cursor:pointer}
 .btn.danger{background:var(--nok);color:#fff}
 .backlink{margin:0 0 12px}
 .note-ios,.note-backup{border-radius:10px;padding:12px 14px;margin:0 0 12px;font-size:14px;line-height:1.45;background:var(--accent-soft);border:1px solid var(--accent)}
+.note-ios{position:relative;padding-right:42px}
 .note-ios b{display:block;margin-bottom:2px}
+.note-x{position:absolute;top:6px;right:6px;width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:var(--fg);font-size:22px;line-height:1;display:grid;place-items:center;padding:0}
+.note-x:hover{background:rgba(22,29,27,.08)}
 .note-backup{display:flex;align-items:center;gap:12px}
 .note-backup span{flex:1;min-width:0}
 .note-backup .btn{font-size:15px;padding:9px 12px;white-space:nowrap}
@@ -302,6 +305,7 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
     <div class="nojs" id="nojs">This is a preview that cannot run the app. Save the file and open it in Chrome (Android) or put it on a website and open it in Safari (iPhone).</div>
   <section id="viewStart" hidden>
     <div class="note-ios" id="iosNote" hidden>
+      <button type="button" class="note-x" id="iosNoteX" aria-label="Dismiss">×</button>
       <b>On iPhone or iPad: add this app to your Home Screen.</b>
       Tap the Share button, then <i>Add to Home Screen</i>, and start inspections from that icon. In a normal Safari tab, Safari deletes everything stored here after 7 days without a visit. The Home Screen app keeps its own storage, so export anything you started in Safari and load the ZIP there.
     </div>
@@ -1021,7 +1025,7 @@ const SEV_BTN = [['sevLow','low'],['sevMed','med'],['sevHigh','high']];
 /* ---------- DOM ---------- */
 const $ = id => document.getElementById(id);
 $('nojs').remove();
-const ids = ['iosNote','backupNote','backupText','backupGo','backupInfo','viewAbout','aboutBack','inspRow','hdrSite','hdrSub','hdrChange','viewStart','startBackRow','startBack','inspListWrap','inspList','nwSite','nwSubject','nwInspectors','nwErr','nwGo','ldGo','ldIn','ldErr','sync','syncText','camMode','tabInspect','tabLog','logCount','viewSubjects','viewPick','viewForm','viewLog','subjects',
+const ids = ['iosNote','iosNoteX','backupNote','backupText','backupGo','backupInfo','viewAbout','aboutBack','inspRow','hdrSite','hdrSub','hdrChange','viewStart','startBackRow','startBack','inspListWrap','inspList','nwSite','nwSubject','nwInspectors','nwErr','nwGo','ldGo','ldIn','ldErr','sync','syncText','camMode','tabInspect','tabLog','logCount','viewSubjects','viewPick','viewForm','viewLog','subjects',
   'resume','resumeSubject','resumeGo','resumeDrop','pickBack','pickSubject','pickChecks','pickNoPhoto','pickPhoto',
   'back','formTitle','fSubject','fChecks','fPhotos','locText','locSrc','locRetry','locEdit','locEditor','latIn','lonIn',
   'objectId','objectIds','resOk','resNok','resNa','sevField','sevLow','sevMed','sevHigh','note','formErr','cancel','save','logSummary','savePhotos','exportCsv','exportZip','records',
@@ -2101,9 +2105,11 @@ function renderBackup(){
   if(!el.backupNote.hidden) el.backupText.textContent = (insp.exportedAt ? 'Last backup ' + fmtDT(insp.exportedAt) + '. ' : 'Not backed up yet. ') + 'Export a ZIP so a reset or lost phone does not lose this inspection.';
   const store = storageProtected === true ? 'Storage on this phone is protected from automatic clean-up.' : (IS_IOS && !IS_HOMESCREEN ? 'Safari may delete this data after 7 days without a visit; add the app to your Home Screen.' : 'The browser may clear this data when the phone runs low on space.');
   el.backupInfo.textContent = (insp.exportedAt ? 'Last ZIP export: ' + fmtDT(insp.exportedAt) + (needsBackup(insp) ? ' (changes since then).' : '.') : 'Not exported yet.') + ' ' + store;
-  el.iosNote.hidden = !(IS_IOS && !IS_HOMESCREEN);
+  let dismissed = false; try{ dismissed = localStorage.getItem('pvfi.iosNoteDismissed') === '1'; }catch(e){}
+  el.iosNote.hidden = !(IS_IOS && !IS_HOMESCREEN) || dismissed;
 }
 el.backupGo.addEventListener('click', () => el.exportZip.click());
+el.iosNoteX.addEventListener('click', () => { try{ localStorage.setItem('pvfi.iosNoteDismissed', '1'); }catch(e){} el.iosNote.hidden = true; });
 
 /* ---------- About ---------- */
 document.querySelectorAll('[data-variant]').forEach(n => { n.hidden = n.dataset.variant !== (STANDALONE ? 'web' : 'claude'); });
