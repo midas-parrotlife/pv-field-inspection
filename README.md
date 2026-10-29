@@ -5,10 +5,9 @@ Mobile web app for solar site walkdowns: tap a subject, take a photo, pick the c
 | | |
 |---|---|
 | **Status** | Live |
-| **Live** | https://pv-field-inspection.parrotlife.nl (old: https://midas-parrotlife.github.io/pv-field-inspection/ — until the GitHub account rename) |
+| **Live** | https://pv-field-inspection.parrotlife.nl |
 | **Hosting** | Cloudflare Worker `pv-field-inspection` (static assets only) |
 | **Deploy** | Automatic: push to `main` → Workers Builds runs `npx wrangler deploy` |
-| **Hub** | https://parrotlife.nl |
 
 Single file, no backend: `index.html`. Files that must not be served are listed in `.assetsignore`.
 
