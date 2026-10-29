@@ -14,7 +14,7 @@ Single file, no backend: `index.html`. Files that must not be served are listed 
 
 ## Disclaimer
 
-This app is a **proof of concept**, provided "as is", without warranty of any kind. You use it entirely at your own risk: to the maximum extent permitted by law, the author accepts no liability for any loss or damage, including lost data, incorrect or incomplete inspection results, missed defects, or decisions based on its records or reports. Inspection results remain the responsibility of the inspector and the asset owner; the app does not replace certified inspection procedures or safety rules. The app is **not maintained**: no support, updates or fixes, and it may stop working or go offline without notice.
+This app is a **proof of concept**, designed and written entirely with AI (Anthropic's Claude) based on the author's instructions; the code has not been independently reviewed, tested or audited. It is provided "as is", without warranty of any kind. You use it entirely at your own risk: to the maximum extent permitted by law, the author accepts no liability for any loss or damage, including lost data, incorrect or incomplete inspection results, missed defects, or decisions based on its records or reports. Inspection results remain the responsibility of the inspector and the asset owner; the app does not replace certified inspection procedures or safety rules. The app is **not maintained**: no support, updates or fixes, and it may stop working or go offline without notice.
 
 ## Privacy
 
