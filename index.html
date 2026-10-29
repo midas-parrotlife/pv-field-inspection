@@ -36,7 +36,8 @@
   --ok:#49c47e; --ok-soft:#163626; --nok:#ff7a6c; --nok-soft:#3f1f1b; --na:#9aa7a2; --na-soft:#2a3330; color-scheme:dark }
 
 *{box-sizing:border-box}
-html,body{height:100%}
+html{height:100%}
+body{min-height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.35;-webkit-text-size-adjust:100%}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -51,6 +52,8 @@ button{cursor:pointer}
 .linkbtn{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;font-size:12px}
 .sync.local i,.sync.local #syncText{display:none}
 .sync.on i{background:var(--ok)} .sync.pending i{background:var(--accent)}
+.disc{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:-10px -16px 8px;padding:5px 16px;background:var(--soft);font-size:11.5px;line-height:1.35;color:var(--muted)}
+.disc .linkbtn{font-size:11.5px;flex:0 0 auto}
 .insprow{display:flex;gap:10px;align-items:center;margin-top:6px}
 .insprow .t{flex:1;min-width:0}
 .insprow .l1{display:flex;align-items:baseline;gap:6px;min-width:0}
@@ -270,6 +273,7 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
 </head>
 <body>
 <header class="top">
+  <div class="disc"><span>Proof of concept · no warranty, liability or support<span data-variant="web"> · data stays on this device</span></span><button type="button" class="linkbtn" data-about>About</button></div>
   <div class="brand">
     <h1>PV Field Inspection</h1>
     <span class="sync" id="sync"><i></i><span id="syncText">local only</span><button type="button" id="camMode" class="linkbtn">camera: in app</button></span>
@@ -341,7 +345,7 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
       <p><b>Deleting:</b> use Clear log (Log tab) or Delete on the inspection list. Clearing this site's data in your browser settings removes everything. Deleted data cannot be recovered, so export a ZIP first if you need it.</p>
 
       <h3>Licence</h3>
-      <p>Open source under the MIT licence. Source code: github.com/midas-parrotlife/pv-field-inspection</p>
+      <p>© 2026 Joris (parrotlife.nl). Open source under the MIT licence. Source code: github.com/midas-parrotlife/pv-field-inspection</p>
       <p class="small">Built with JSZip (MIT), jsPDF (MIT), jsPDF-AutoTable (MIT) and the Barlow typeface (SIL Open Font License 1.1).</p>
     </div>
   </section>
@@ -501,7 +505,6 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
       <p class="hint">Tap ↻ on a photo that is on its side. The change is saved in the log.</p>
       <div class="rpgrid" id="rpPhotos"></div>
     </details>
-    <p class="fine"><button type="button" class="linkbtn" data-about>About &amp; disclaimer</button></p>
   </section>
 </main>
 
