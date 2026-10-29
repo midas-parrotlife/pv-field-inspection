@@ -41,10 +41,13 @@ button{cursor:pointer}
 .sync{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;margin-left:auto}
 .sync i{width:9px;height:9px;border-radius:50%;background:var(--muted);display:inline-block}
 .linkbtn{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;font-size:12px}
+.sync.local i,.sync.local #syncText{display:none}
 .sync.on i{background:var(--ok)} .sync.pending i{background:var(--accent)}
 .insprow{display:flex;gap:10px;align-items:center;margin-top:6px}
 .insprow .t{flex:1;min-width:0}
-.insprow b{display:block;font-family:var(--display);font-weight:600;font-size:18px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.insprow .l1{display:flex;align-items:baseline;gap:6px;min-width:0}
+.insprow .l1 .linkbtn{flex:0 0 auto}
+.insprow b{display:block;min-width:0;font-family:var(--display);font-weight:600;font-size:18px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .insprow span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .insprow .linkbtn{font-size:13px;white-space:nowrap}
 .top.start .tabs{display:none}
@@ -257,8 +260,7 @@ main{padding:16px 16px 32px;max-width:720px;margin:0 auto}
     <span class="sync" id="sync"><i></i><span id="syncText">local only</span><button type="button" id="camMode" class="linkbtn">camera: in app</button></span>
   </div>
   <div class="insprow" id="inspRow" hidden>
-    <div class="t"><b id="hdrSite"></b><span id="hdrSub"></span></div>
-    <button type="button" class="linkbtn" id="hdrChange">Switch inspection</button>
+    <div class="t"><div class="l1"><b id="hdrSite"></b><button type="button" class="linkbtn" id="hdrChange">(Switch)</button></div><span id="hdrSub"></span></div>
   </div>
   <div class="tabs" role="tablist">
     <button role="tab" id="tabInspect" aria-selected="true">Inspect</button>
@@ -1550,7 +1552,7 @@ async function deleteRecord(r, quiet){
 /* ---------- Sync to artifact storage ---------- */
 function setSyncUI(){
   const pending = [...records.values()].filter(r => !r.synced).length;
-  if(!caps.db){ el.sync.className = 'sync on'; el.syncText.textContent = 'stored on this phone'; return; }
+  if(!caps.db){ el.sync.className = 'sync local'; el.syncText.textContent = ''; return; }
   if(syncing){ el.sync.className = 'sync pending'; el.syncText.textContent = 'syncing…'; return; }
   if(pending){ el.sync.className = 'sync pending'; el.syncText.textContent = `${pending} to sync`; return; }
   el.sync.className = 'sync on'; el.syncText.textContent = 'synced';
